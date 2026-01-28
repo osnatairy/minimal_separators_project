@@ -1,0 +1,150 @@
+mapping = {
+    'compile_time': 'A',
+    'elapsed_time': 'B',
+    'execution_time': 'C',
+    'lock_wait_time': 'D',
+    'num_columns': 'E',
+    'num_joins': 'F',
+    'num_tables': 'G',
+    'planning_time': 'H',
+    'query_template': 'I',
+    'result_cache_hit': 'J',
+    'returned_bytes': 'K',
+    'returned_rows': 'L'
+}
+
+
+
+
+adjustment_sets_names = {
+    ("query_template", "compile_time"): [
+        set()
+    ],
+
+    ("query_template", "planning_time"): [
+        set()
+    ],
+
+    ("query_template", "execution_time"): [
+        set()
+    ],
+
+    ("query_template", "lock_wait_time"): [
+        set()
+    ],
+
+    ("query_template", "elapsed_time"): [
+        set()
+    ],
+
+    ("num_joins", "planning_time"): [
+        {"num_tables", "result_cache_hit"},
+        {"query_template"}
+    ],
+
+    ("num_joins", "execution_time"): [
+        {"num_columns", "num_tables", "result_cache_hit"},
+        {"query_template"}
+    ],
+
+    ("num_joins", "elapsed_time"): [
+        {"num_columns", "num_tables", "result_cache_hit"},
+        {"query_template"}
+    ],
+
+    ("num_tables", "planning_time"): [
+        {"num_joins", "result_cache_hit"},
+        {"query_template"}
+    ],
+
+    ("num_tables", "execution_time"): [
+        {"num_columns", "num_joins", "result_cache_hit"},
+        {"query_template"}
+    ],
+
+    ("num_tables", "elapsed_time"): [
+        {"num_columns", "num_joins", "result_cache_hit"},
+        {"query_template"}
+    ],
+
+    ("num_columns", "execution_time"): [
+        {"num_joins", "num_tables", "result_cache_hit"},
+        {"query_template"}
+    ],
+
+    ("num_columns", "elapsed_time"): [
+        {"num_joins", "num_tables", "result_cache_hit"},
+        {"query_template"}
+    ],
+
+    ("result_cache_hit", "execution_time"): [
+        {"num_columns", "num_joins", "num_tables"},
+        {"query_template"}
+    ],
+
+    ("result_cache_hit", "elapsed_time"): [
+        {"num_columns", "num_joins", "num_tables"},
+        {"query_template"}
+    ],
+}
+
+
+
+
+adjustment_sets_letters = {
+    ("I", "A"): [ set() ],
+    ("I", "H"): [ set() ],
+    ("I", "C"): [ set() ],
+    ("I", "D"): [ set() ],
+    ("I", "B"): [ set() ],
+
+    ("F", "H"): [
+        {"G", "J"},
+        {"I"}
+    ],
+
+    ("F", "C"): [
+        {"E", "G", "J"},
+        {"I"}
+    ],
+
+    ("F", "B"): [
+        {"E", "G", "J"},
+        {"I"}
+    ],
+
+    ("G", "H"): [
+        {"F", "J"},
+        {"I"}
+    ],
+
+    ("G", "C"): [
+        {"E", "F", "J"},
+        {"I"}
+    ],
+
+    ("G", "B"): [
+        {"E", "F", "J"},
+        {"I"}
+    ],
+
+    ("E", "C"): [
+        {"F", "G", "J"},
+        {"I"}
+    ],
+
+    ("E", "B"): [
+        {"F", "G", "J"},
+        {"I"}
+    ],
+
+    ("J", "C"): [
+        {"E", "F", "G"},
+        {"I"}
+    ],
+
+    ("J", "B"): [
+        {"E", "F", "G"},
+        {"I"}
+    ],
+}
