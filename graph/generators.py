@@ -45,7 +45,6 @@ def generate_random_dag(
 
 def layered_dag(n: int,
                 prob_edge: float,
-                num_layers: int = 3,
                 node_prefix: str = "V",
                 seed: int | None = None,
                 force_nonempty_layer0: bool = True
@@ -59,6 +58,7 @@ def layered_dag(n: int,
       - מוודאים שלכל צומת בשכבה>0 יש לפחות הורה.
       - מוסיפים קשתות נוספות בהסתברות prob_edge רק מ-layer נמוך ל-high.
     """
+    num_layers = int(n ** (1 / 2)) # will have good balance between the depth and the width of the tree
     if seed is not None:
         random.seed(seed)
 
@@ -252,7 +252,7 @@ if __name__ == "__main__":
     k_roots = 3
 
     # שיטה 1
-    G1, layers = layered_dag(n=n, prob_edge=prob, num_layers=num_layers, seed=seed)
+    G1 = layered_dag(n=n, prob_edge=prob, seed=seed)
     print("Method 1 - layered_dag:")
     print("Nodes:", G1.number_of_nodes(), "Edges:", G1.number_of_edges())
     print("Is DAG?", is_directed_acyclic_graph(G1))

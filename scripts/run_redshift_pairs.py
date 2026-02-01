@@ -2,14 +2,14 @@ from typing import Dict, List, Tuple, Iterable, Optional
 
 import utils as utils
 
-from minimal_separators_project.graph.separators import find_seperators
-from minimal_separators_project.io.dot_loader import dot_to_mapping_and_edges
+from graph.separators import find_seperators
+from i_o.dot_loader import dot_to_mapping_and_edges
 
-from minimal_separators_project.graph.transforms import build_G_from_mapped_edges, relabel_to_ints
-from minimal_separators_project.graph.h1_builder import build_H1_from_DAG
+from graph.transforms import build_G_from_mapped_edges, relabel_to_ints
+from graph.h1_builder import build_H1_from_DAG
 
 # analysis for the HASS diagram
-from minimal_separators_project.analysis.adjustment_hasse import  cy_components_for_sets, hasse_from_cy_results, find_containment_pairs
+from analysis.adjustment_hasse import  cy_components_for_sets, hasse_from_cy_results, find_containment_pairs
 
 
 if __name__ == '__main__':

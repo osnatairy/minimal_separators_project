@@ -1,7 +1,7 @@
 import networkx as nx
 from collections import deque
 
-from minimal_separators_project.graph.helpers import normalize_nodes_to_set
+from graph.helpers import normalize_nodes_to_set
 
 
 

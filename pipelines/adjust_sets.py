@@ -4,14 +4,14 @@ from typing import List, Optional
 import networkx as nx
 
 # BN
-from minimal_separators_project.bn.bayesian_network import BN
+from bn.bayesian_network import BN
 
 # graph building + transforms
-from minimal_separators_project.graph.h1_builder import build_H1_from_DAG
-from minimal_separators_project.graph.transforms import singleton_reduction, relabel_to_ints
+from graph.h1_builder import build_H1_from_DAG
+from graph.transforms import singleton_reduction, relabel_to_ints
 
 # separators decoding (and/or enumeration)
-from minimal_separators_project.graph.separators import decode_separators, run_enumerator
+from graph.separators import decode_separators, run_enumerator
 
 # your algorithm runner
 

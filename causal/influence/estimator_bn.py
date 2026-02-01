@@ -1,7 +1,7 @@
 from typing import Dict, List, Tuple, Callable, Any
 
-from minimal_separators_project.bn.bayesian_network import BN         # רשת בייסיאנית שלך :contentReference[oaicite:2]{index=2}
-from minimal_separators_project.causal.policies import PolicyFn
+from bn.bayesian_network import BN         # רשת בייסיאנית שלך :contentReference[oaicite:2]{index=2}
+from causal.policies import PolicyFn
 
 # ---------- עזר: איטרציה על השמותות של Z ----------
 

@@ -4,7 +4,7 @@ import networkx as nx
 from dataclasses import dataclass
 from typing import Dict, Tuple, List
 
-from minimal_separators_project.graph.generators import spanning_tree_then_orient, generate_random_dag
+from graph.generators import spanning_tree_then_orient, generate_random_dag, layered_dag
 
 
 # -----------------------------
@@ -148,7 +148,7 @@ def make_linear_sem(
       - DAG רנדומלי בגודל n
       - פרמטרים ליניאריים (beta, sigma2)
     """
-    G1 = generate_random_dag(n=n, edge_prob=edge_prob, node_prefix=node_prefix, seed=seed_graph)
+    G1 = layered_dag(n=n, prob_edge=edge_prob, seed=seed_graph)
     k_roots = 3
     G = spanning_tree_then_orient(n=n,
                     prob_edge=edge_prob,

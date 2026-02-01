@@ -1,5 +1,5 @@
 
-from minimal_separators_project.sem.linear_sem import make_linear_sem, save_sem_to_json, load_sem_from_json, sem_to_B_Omega, covariance_from_B_Omega
+from sem.linear_sem import make_linear_sem, save_sem_to_json, load_sem_from_json, sem_to_B_Omega, covariance_from_B_Omega
 
 
 # -----------------------------
@@ -28,15 +28,15 @@ if __name__ == "__main__":
     )
 
     # שמירה לקובץ
-    out_json = "linear_sem_n10.json"
-    save_sem_to_json(sem, out_json)
-    print("Saved SEM to:", out_json)
+    #out_json = "linear_sem_n10.json"
+    #save_sem_to_json(sem, out_json)
+    #print("Saved SEM to:", out_json)
 
     # טעינה מחדש (שחזור מלא)
-    sem2 = load_sem_from_json(out_json)
+    #sem2 = load_sem_from_json(out_json)
 
     # זה הגרף שתעבירי לפונקציות שלך:
-    G = sem2.G
+    G = sem.G#2.G
     print("Nodes:", G.number_of_nodes(), "Edges:", G.number_of_edges())
 
     # לדוגמה: בחירת X,Y
@@ -67,6 +67,6 @@ if __name__ == "__main__":
     '''
 
     # אופציונלי: חישוב Sigma לשונות/קו-וריאנס:
-    nodes, B, Omega = sem_to_B_Omega(sem2)
-    Sigma = covariance_from_B_Omega(B, Omega)
-    print("Sigma shape:", Sigma.shape)
+    #nodes, B, Omega = sem_to_B_Omega(sem2)
+    #Sigma = covariance_from_B_Omega(B, Omega)
+    #print("Sigma shape:", Sigma.shape)

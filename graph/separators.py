@@ -8,7 +8,7 @@ from typing import Optional, List
 import networkx as nx
 
 # your graph transform
-from minimal_separators_project.graph.transforms import relabel_to_ints
+from graph.transforms import relabel_to_ints
 
 # your enumeration package/module
 import enum_algorithms
@@ -22,7 +22,7 @@ def decode_separators(seps_int, id_to_name):
 
 
 
-def run_enumerator(H_int: nx.Graph, s: int, t: int, which="SmallMinimalSeps", K=6, limit_seconds=120):
+def run_enumerator(H_int: nx.Graph, s: int, t: int, which="smallminimalseps", K=20, limit_seconds=120):
     """
     Run your minimal-separator enumerator. Returns a list[list[int]].
     which: "RankedEnumSeps" (RankedEnumSeps) or "small" (SmallMinimalSeps, uses K)
@@ -34,6 +34,7 @@ def run_enumerator(H_int: nx.Graph, s: int, t: int, which="SmallMinimalSeps", K=
     if which.lower() in ("small", "smallmin", "smallminimalseps"):
         seps, _stats, _total_time = enum_algorithms.SmallMinimalSeps(H_int, K or 10**9, event)
     else:
+        H_int.graph['weighted'] = 0
         seps, _stats, _total_time = enum_algorithms.RankedEnumSeps(H_int, event)
 
     # Normalize to sorted lists of ints

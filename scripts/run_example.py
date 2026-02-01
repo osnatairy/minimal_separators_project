@@ -4,26 +4,26 @@ from typing import Any, Dict, Tuple
 
 
 # BN + טעינה מ-JSON
-from minimal_separators_project.bn.bayesian_network import BN
-from minimal_separators_project.io.json_loader import load_bn_from_json  # אם יצרת קובץ טעינה; אחרת עדכני לנתיב האמיתי
+from bn.bayesian_network import BN
+from i_o.json_loader import load_bn_from_json  # אם יצרת קובץ טעינה; אחרת עדכני לנתיב האמיתי
 
 # גרף -> H
-from minimal_separators_project.pipelines.adjust_sets import preprocess_H
+from pipelines.adjust_sets import preprocess_H
 
 # separators (מומלץ להחליף find_seperators)
-from minimal_separators_project.graph.separators import find_seperators
+from graph.separators import find_seperators
 
 # validation for dowhy seperator
-from minimal_separators_project.validation.dowhy_check import test_Z_with_dowhy
+from validation.dowhy_check import test_Z_with_dowhy
 
 # analysis for the HASS diagram
-from minimal_separators_project.analysis.adjustment_hasse import  cy_components_for_sets, hasse_from_cy_results, find_containment_pairs
+from analysis.adjustment_hasse import  cy_components_for_sets, hasse_from_cy_results, find_containment_pairs
 
 #influance function calculation
-from minimal_separators_project.causal.influence.estimator_bn import asymptotic_variance_for_Z
-from minimal_separators_project.causal.policies import static_do_policy
+from causal.influence.estimator_bn import asymptotic_variance_for_Z
+from causal.policies import static_do_policy
 
-import minimal_separators_project.causal.grafical_criteria_for_O as gcO
+import causal.grafical_criteria_for_O as gcO
 
 if __name__ == '__main__':
 

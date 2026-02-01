@@ -2,7 +2,7 @@
 import numpy as np
 from typing import List, Dict, Tuple, Optional
 
-from minimal_separators_project.sem.linear_sem import sem_to_B_Omega, covariance_from_B_Omega
+from sem.linear_sem import sem_to_B_Omega, covariance_from_B_Omega
 
 # ---------- helpers: indexing + conditional variance ----------
 

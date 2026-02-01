@@ -1,9 +1,9 @@
 import networkx as nx
 from typing import List, Dict, Tuple, Any, Callable, Union
 
-from minimal_separators_project.graph.helpers import normalize_nodes_to_set
-from minimal_separators_project.graph.causal_vertices import find_causal_vertices_sets_optimized
-from minimal_separators_project.graph.transforms import create_proper_backdoor_graph, create_moral_graph, connect_I_to_XY, create_clique_on_neighbors
+from graph.helpers import normalize_nodes_to_set
+from graph.causal_vertices import find_causal_vertices_sets_optimized
+from graph.transforms import create_proper_backdoor_graph, create_moral_graph, connect_I_to_XY, create_clique_on_neighbors
 
 
 def restrict_to_ancestors_dag(G: nx.DiGraph, keep: List) -> nx.DiGraph:

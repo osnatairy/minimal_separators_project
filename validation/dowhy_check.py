@@ -2,9 +2,9 @@ from networkx.drawing.nx_pydot import to_pydot
 from dowhy import CausalModel
 import pandas as pd
 
-from minimal_separators_project.validation.set_utils import sort_and_dedup_subsets
+from validation.set_utils import sort_and_dedup_subsets
 
-from minimal_separators_project.validation.separators_consistency import (
+from validation.separators_consistency import (
     contains_set,
     check_separators_consistency,
 )
@@ -30,7 +30,7 @@ def test_Z_with_dowhy(G, X, Y, Z_sets):
     #model = CausalModel(data=None, treatment=X, outcome=Y, graph=dot)
 
     # 3) מזהים עם exhaustive-search כדי לקבל את כל סטי ה-backdoor התקפים
-    identified = model.identify_effect(method_name="exhaustive-search")
+    identified = model.identify_effect(method_name="exhaustive-search",optimize_backdoor=True)
 
     # 4) מציגים/שולפים את כל הסטים
     print(identified)

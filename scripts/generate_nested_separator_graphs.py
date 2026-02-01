@@ -4,8 +4,8 @@ import networkx as nx
 import random
 import os
 
-from minimal_separators_project.graph.separators_bruteforce import get_minimal_separators
-from minimal_separators_project.analysis.adjustment_hasse import cy_component
+from graph.separators_bruteforce import get_minimal_separators
+from analysis.adjustment_hasse import cy_component
 
 if __name__ == "__main__":
     print("Searching for graphs with nested separator property...")
@@ -13,7 +13,7 @@ if __name__ == "__main__":
     attempts = 0
     found_count = 0
 
-    output_dir = "output/nested_graphs"
+    output_dir = "outputs/nested_graphs"
     os.makedirs(output_dir, exist_ok=True)
 
     while found_count < 3 and attempts < 10000:

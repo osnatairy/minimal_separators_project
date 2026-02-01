@@ -2,7 +2,7 @@ import random
 import networkx as nx
 from typing import Tuple, List, Optional
 
-from minimal_separators_project.graph.helpers import normalize_nodes_to_set
+from graph.helpers import normalize_nodes_to_set
 
 
 
