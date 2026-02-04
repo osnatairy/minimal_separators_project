@@ -5,6 +5,7 @@ import heapq
 from itertools import combinations
 import time
 import lzma
+import numpy as np
 
 
 def reset_random_seed(seed):
@@ -232,3 +233,11 @@ def bail(g, tstart):
     end = time.time()
     print(f'Run time: {end - tstart} seconds')
     exit(-1)
+
+
+
+def split_seeds(seed: int) -> tuple[int, int]:
+    rng = np.random.default_rng(seed)
+    seed_graph  = int(rng.integers(0, 2**32 - 1))
+    seed_params = int(rng.integers(0, 2**32 - 1))
+    return seed_graph, seed_params

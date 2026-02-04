@@ -104,3 +104,28 @@ def contains_set(raw_sets: List[Iterable[str]], Z: Iterable[str]) -> bool:
     universe = {frozenset(s) for s in (set(r) for r in raw_sets)}
     return frozenset(set(Z)) in universe
 
+
+# if check_not_sep = 1 then the function will return a list of sets that are not separators
+# Otherwize it will return a list of sets that are separators but not minimal
+def find_non_minimal_st_sep(g, separators, check_not_sep = 1):
+    #result = {'NOT_MIN': [], 'NOT_SEP': []}
+    result = []
+    result_not_sep = []
+    nonmin_index = []
+    n = 0
+    for sep in separators:
+        h1 = g.copy()
+        h1.remove_nodes_from(sep)
+        if check_not_sep == 1:
+            if nx.has_path(h1, g.graph['st'][0], g.graph['st'][1]):
+                 result_not_sep.append(sep)  # not a separator
+        for v in sep:
+            h2 = g.copy()
+            h2.remove_nodes_from(sep-{v})
+            if not nx.has_path(h2, g.graph['st'][0], g.graph['st'][1]):
+                #result['NOT_MIN'].append(sep) # not minimal (sep-v is a separator)
+                result.append(sep) # not minimal
+                nonmin_index.append(n)
+                break
+        n += 1
+    return [result, result_not_sep, nonmin_index]

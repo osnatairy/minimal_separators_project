@@ -183,6 +183,34 @@ def find_containment_pairs(res):
     return False
 
 
+
+
+def extract_separator_containment_pairs(res):
+    comp_to_Zs = res["component_to_Zs"]   # component -> [Z,...]
+    edges = res["hasse_edges"]            # [(comp_small, comp_big), ...]
+
+    pairs = []
+    for comp_small, comp_big in edges:
+        Zs_small = comp_to_Zs.get(comp_small, [])
+        Zs_big = comp_to_Zs.get(comp_big, [])
+
+        # comp_small ⊆ comp_big  ==>  comp_big "מכיל" את comp_small
+        # לכן: מפריד של comp_big = "המכיל", מפריד של comp_small = "המוכל"
+        for z_big in Zs_big:
+            for z_small in Zs_small:
+                pairs.append({
+                    "outer_sep": z_big,
+                    "outer_component": comp_big,
+                    "inner_sep": z_small,
+                    "inner_component": comp_small,
+                })
+    return pairs
+
+
+def frozenset_to_str(fs):
+    return ";".join(sorted(fs))
+
+
 ##### EXAMPLE OF USE #####
 
 '''

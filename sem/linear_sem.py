@@ -1,9 +1,9 @@
 import json
 import numpy as np
 import networkx as nx
+import utils as utils
 from dataclasses import dataclass
 from typing import Dict, Tuple, List
-
 from graph.generators import spanning_tree_then_orient, generate_random_dag, layered_dag
 
 
@@ -45,11 +45,11 @@ def sample_linear_parameters(
     rng = np.random.default_rng(seed)
 
     beta: Dict[str, float] = {}
-    for u, v in G.edges():
+    for u, v in sorted(G.edges(), key=lambda e: (str(e[0]), str(e[1]))):
         beta[f"{u}->{v}"] = float(rng.normal(loc=0.0, scale=beta_scale))
 
     sigma2: Dict[str, float] = {}
-    for v in G.nodes():
+    for v in sorted(G.nodes(), key=str):
         sigma2[v] = float(rng.uniform(low=sigma2_low, high=sigma2_high))
 
     return beta, sigma2
@@ -139,8 +139,7 @@ def make_linear_sem(
     sigma2_high: float = 1.0,
     num_layers: int = 5,
     node_prefix: str = "V",
-    seed_graph: int = 1,
-    seed_params: int = 2
+    seed: int = 1
 
 ) -> LinearSEM:
     """
@@ -148,6 +147,8 @@ def make_linear_sem(
       - DAG רנדומלי בגודל n
       - פרמטרים ליניאריים (beta, sigma2)
     """
+    seed_graph, seed_params = utils.split_seeds(seed)
+
     G1 = layered_dag(n=n, prob_edge=edge_prob, seed=seed_graph)
     k_roots = 3
     G = spanning_tree_then_orient(n=n,
@@ -164,3 +165,27 @@ def make_linear_sem(
         seed=seed_params
     )
     return LinearSEM(G=G, beta=beta, sigma2=sigma2)
+
+
+def remove_edge_from_sem(sem: LinearSEM, u: str, v: str, strict: bool = True) -> None:
+    """
+    מסירה את הקשת u->v גם מהגרף וגם ממילון beta.
+
+    strict=False: לא זורקת שגיאה אם הקשת/המפתח לא קיימים.
+    strict=True: זורקת שגיאה אם משהו חסר (כדי לגלות אי-עקביות).
+    """
+    key = f"{u}->{v}"
+
+    # 1) להסיר מהגרף
+    if sem.G.has_edge(u, v):
+        sem.G.remove_edge(u, v)
+    else:
+        if strict:
+            raise KeyError(f"Edge {u}->{v} not found in sem.G")
+
+    # 2) להסיר מה-beta
+    if key in sem.beta:
+        sem.beta.pop(key)
+    else:
+        if strict:
+            raise KeyError(f"Key '{key}' not found in sem.beta")

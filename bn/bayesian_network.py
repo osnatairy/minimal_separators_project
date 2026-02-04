@@ -1,6 +1,8 @@
 import networkx as nx
 from itertools import product
 from copy import deepcopy
+from dataclasses import dataclass
+from typing import Dict, Tuple, List, Any, Iterable
 
 class BN:
     def __init__(self):
@@ -107,6 +109,7 @@ class BN:
             total += self.joint_prob({**fixed, **assign})
         return total
 
+    '''
     def conditional(self, target, given):
         """P(target | given) = P(target, given) / P(given). dicts must be disjoint."""
         if set(target) & set(given):
@@ -116,7 +119,7 @@ class BN:
         if den == 0.0:
             raise ZeroDivisionError("P(given)=0; conditional undefined.")
         return num / den
-
+    '''
     def domain(self, var: str):
         """Return a copy of the domain list for `var`."""
         if var not in self.domains:
@@ -232,6 +235,231 @@ class BN:
         G.add_nodes_from(self.g.nodes())
         G.add_edges_from([(u, v) for (u, v) in self.g.edges() if v != target_node])
         return G
+
+    def _factors_from_bn(self):
+        """המרת ה-CPTs לפקטורים (Factor מופשט כמ dict-style)."""
+        factors = []
+        for v in self.g.nodes():
+            parents = self.parents(v)
+            # scope = tuple(parents + [v])
+            vars_scope = tuple(parents + [v])
+            table = {}
+            for pkey, row in self.cpts[v].items():
+                for val, prob in row.items():
+                    table[tuple(pkey) + (val,)] = prob
+            factors.append((vars_scope, table))  # ייצוג פשוט: (vars_tuple, table_dict)
+        return factors
+
+    def _restrict_factor(self, factor, var, value):
+        """Restrict factor (vars_tuple, table_dict) על var=value."""
+        vars_scope, table = factor
+        if var not in vars_scope:
+            return factor
+        idx = vars_scope.index(var)
+        new_vars = vars_scope[:idx] + vars_scope[idx + 1:]
+        new_table = {}
+        for key, w in table.items():
+            if key[idx] == value:
+                new_key = key[:idx] + key[idx + 1:]
+                new_table[new_key] = new_table.get(new_key, 0.0) + w
+        return (new_vars, new_table)
+
+    def _multiply_factors(self, f1, f2):
+        """Multiply two factors (vars_tuple, table_dict)."""
+        vars1, tab1 = f1
+        vars2, tab2 = f2
+        new_vars = list(vars1)
+        for v in vars2:
+            if v not in new_vars:
+                new_vars.append(v)
+        new_vars = tuple(new_vars)
+
+        pos1 = [new_vars.index(v) for v in vars1]
+        pos2 = [new_vars.index(v) for v in vars2]
+
+        # common vars
+        common = [v for v in vars1 if v in vars2]
+        new_table = {}
+
+        if common:
+            other_common_pos = [vars2.index(v) for v in common]
+            buckets = {}
+            for o_key, o_w in tab2.items():
+                sig = tuple(o_key[i] for i in other_common_pos)
+                buckets.setdefault(sig, []).append((o_key, o_w))
+
+            self_common_pos = [vars1.index(v) for v in common]
+            for s_key, s_w in tab1.items():
+                sig = tuple(s_key[i] for i in self_common_pos)
+                for o_key, o_w in buckets.get(sig, []):
+                    full = [None] * len(new_vars)
+                    for i, p in enumerate(pos1):
+                        full[p] = s_key[i]
+                    for i, p in enumerate(pos2):
+                        full[p] = o_key[i]
+                    new_table[tuple(full)] = new_table.get(tuple(full), 0.0) + s_w * o_w
+        else:
+            for s_key, s_w in tab1.items():
+                for o_key, o_w in tab2.items():
+                    full = [None] * len(new_vars)
+                    for i, p in enumerate(pos1):
+                        full[p] = s_key[i]
+                    for i, p in enumerate(pos2):
+                        full[p] = o_key[i]
+                    new_table[tuple(full)] = new_table.get(tuple(full), 0.0) + s_w * o_w
+
+        return (new_vars, new_table)
+
+    def _sum_out_factor(self, factor, var):
+        """Sum out var from factor (vars_tuple, table_dict)."""
+        vars_scope, table = factor
+        if var not in vars_scope:
+            return factor
+        idx = vars_scope.index(var)
+        new_vars = vars_scope[:idx] + vars_scope[idx + 1:]
+        new_table = {}
+        for key, w in table.items():
+            new_key = key[:idx] + key[idx + 1:]
+            new_table[new_key] = new_table.get(new_key, 0.0) + w
+        return (new_vars, new_table)
+
+    def _normalize_factor(self, factor):
+        vars_scope, table = factor
+        s = sum(table.values())
+        if s == 0.0:
+            return (vars_scope, table)
+        return (vars_scope, {k: v / s for k, v in table.items()})
+
+    def conditional(self, target: dict, given: dict) -> float:
+        """VE drop-in: מחזיר P(target | given) — תחליף מדויק לקטע הישן."""
+        if set(target) & set(given):
+            raise ValueError("target and given must be disjoint.")
+
+        # build factors
+        factors = self._factors_from_bn()
+
+        # apply evidence
+        for ev_var, ev_val in given.items():
+            factors = [self._restrict_factor(f, ev_var, ev_val) for f in factors]
+
+        # vars to keep
+        query_vars = set(target.keys()) | set(given.keys())
+
+        # elimination order: דטרמיניסטי (alphabetic) — אפשר לשנות ל-min-fill
+        elim_vars = sorted([v for v in self.g.nodes() if v not in query_vars], key=str)
+
+        for z in elim_vars:
+            related = [f for f in factors if z in f[0]]
+            if not related:
+                continue
+            others = [f for f in factors if z not in f[0]]
+            prod = related[0]
+            for f in related[1:]:
+                prod = self._multiply_factors(prod, f)
+            summed = self._sum_out_factor(prod, z)
+            factors = others + [summed]
+
+        # multiply remaining
+        res = factors[0]
+        for f in factors[1:]:
+            res = self._multiply_factors(res, f)
+
+        res = self._normalize_factor(res)
+
+        # build key according to res.vars order
+        key = tuple(target[v] for v in res[0])
+        return res[1].get(key, 0.0)
+
+
+@dataclass(frozen=True)
+class Factor:
+    vars: Tuple[str, ...]                 # סדר משתנים בפקטור
+    table: Dict[Tuple[Any, ...], float]   # מיפוי assignment tuple -> weight
+
+    def restrict(self, var: str, value: Any) -> "Factor":
+        """הצבה evidence: משאירה רק שורות שבהן var=value ומסירה את var מהפקטור."""
+        if var not in self.vars:
+            return self
+        idx = self.vars.index(var)
+        new_vars = self.vars[:idx] + self.vars[idx+1:]
+        new_table = {}
+        for key, w in self.table.items():
+            if key[idx] == value:
+                new_key = key[:idx] + key[idx+1:]
+                new_table[new_key] = new_table.get(new_key, 0.0) + w
+        return Factor(new_vars, new_table)
+
+    def multiply(self, other: "Factor") -> "Factor":
+        """כפל שני פקטורים (join על משתנים משותפים)."""
+        # union vars (שומרים סדר: self ואז מה שחסר מ-other)
+        new_vars = list(self.vars)
+        for v in other.vars:
+            if v not in new_vars:
+                new_vars.append(v)
+        new_vars = tuple(new_vars)
+
+        # אינדקסים למיפוי
+        self_pos = [new_vars.index(v) for v in self.vars]
+        other_pos = [new_vars.index(v) for v in other.vars]
+
+        new_table = {}
+
+        # כדי להיות יעילים מעט: נבנה hash לפי ההשמות על המשותפים של other
+        common = [v for v in self.vars if v in other.vars]
+        if common:
+            other_common_pos = [other.vars.index(v) for v in common]
+            buckets = {}
+            for o_key, o_w in other.table.items():
+                sig = tuple(o_key[i] for i in other_common_pos)
+                buckets.setdefault(sig, []).append((o_key, o_w))
+
+            self_common_pos = [self.vars.index(v) for v in common]
+
+            for s_key, s_w in self.table.items():
+                sig = tuple(s_key[i] for i in self_common_pos)
+                for o_key, o_w in buckets.get(sig, []):
+                    # הרכבת key חדש לפי new_vars
+                    full = [None] * len(new_vars)
+                    for i, p in enumerate(self_pos):
+                        full[p] = s_key[i]
+                    for i, p in enumerate(other_pos):
+                        full[p] = o_key[i]
+                    full_key = tuple(full)
+                    new_table[full_key] = new_table.get(full_key, 0.0) + s_w * o_w
+        else:
+            # אין משותפים -> מכפלה קרטזית
+            for s_key, s_w in self.table.items():
+                for o_key, o_w in other.table.items():
+                    full = [None] * len(new_vars)
+                    for i, p in enumerate(self_pos):
+                        full[p] = s_key[i]
+                    for i, p in enumerate(other_pos):
+                        full[p] = o_key[i]
+                    full_key = tuple(full)
+                    new_table[full_key] = new_table.get(full_key, 0.0) + s_w * o_w
+
+        return Factor(new_vars, new_table)
+
+    def sum_out(self, var: str, domain: List[Any]) -> "Factor":
+        """סכימה (marginalize) על var."""
+        if var not in self.vars:
+            return self
+        idx = self.vars.index(var)
+        new_vars = self.vars[:idx] + self.vars[idx+1:]
+        new_table = {}
+        # פשוט מסכמים שורות שמבדילות רק ב-var
+        for key, w in self.table.items():
+            new_key = key[:idx] + key[idx+1:]
+            new_table[new_key] = new_table.get(new_key, 0.0) + w
+        return Factor(new_vars, new_table)
+
+    def normalize_over(self) -> "Factor":
+        """מנרמל את הפקטור כך שסכום כל השורות = 1."""
+        s = sum(self.table.values())
+        if s == 0.0:
+            return self
+        return Factor(self.vars, {k: v / s for k, v in self.table.items()})
+
 
 '''
 # build a tiny bn: Z -> X -> Y and Z -> Y (all binary)

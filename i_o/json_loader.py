@@ -1,5 +1,12 @@
+import os
 import json
+import pandas as pd
 from pathlib import Path
+
+import networkx as nx
+from typing import Dict, Any
+
+from sem.linear_sem import LinearSEM
 
 def _coerce_prob_keys_to_domain_types(prob_dict, domain):
     """
@@ -64,3 +71,66 @@ def load_bn_from_json(path, BNClass):
         bn.set_cpt(var, table)
 
     return bn
+
+
+#save sem graph to file
+def save_linear_sem(path: str, sem: LinearSEM) -> None:
+    payload: Dict[str, Any] = {
+        "nodes": list(sem.G.nodes()),
+        "edges": [[u, v] for (u, v) in sem.G.edges()],
+        "beta": sem.beta,
+        "sigma2": sem.sigma2,
+    }
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2, ensure_ascii=False)
+
+#load sem graph from file
+def load_linear_sem(path: str) -> LinearSEM:
+    with open(path, "r", encoding="utf-8") as f:
+        d = json.load(f)
+
+    G = nx.DiGraph()
+    G.add_nodes_from(d["nodes"])
+    G.add_edges_from([tuple(e) for e in d["edges"]])
+
+    return LinearSEM(G=G, beta=d["beta"], sigma2=d["sigma2"])
+
+
+def load_dataframe(data_path: str) -> pd.DataFrame:
+    """
+    תומך ב:
+      - .pkl (pickle של pandas DataFrame)
+      - .csv
+    """
+    ext = os.path.splitext(data_path)[1].lower()
+    if ext == ".pkl":
+        return pd.read_pickle(data_path)
+    if ext == ".csv":
+        return pd.read_csv(data_path)
+    raise ValueError(f"Unsupported data file extension: {ext} (use .pkl or .csv)")
+
+
+from typing import Dict, List, Tuple, Any, Optional
+
+# ----------------------------
+# 6) בניית JSON בפורמט הדוגמה
+# ----------------------------
+
+def build_bn_json(
+    nodes: List[str],
+    edges: List[Tuple[str, str]],
+    parents_map: Dict[str, List[str]],
+    domains: Dict[str, List[Any]],
+    cpts: Dict[str, List[Dict[str, Any]]],
+) -> Dict[str, Any]:
+    """
+    בונה את ה-JSON הסופי בפורמט כמו bn_12_nodes.json:
+      variables, edges, parent_order, cpts
+    """
+    out = {
+        "variables": {n: {"domain": domains[n]} for n in nodes},
+        "edges": [[u, v] for (u, v) in edges],
+        "parent_order": {n: parents_map.get(n, []) for n in nodes},
+        "cpts": cpts,
+    }
+    return out

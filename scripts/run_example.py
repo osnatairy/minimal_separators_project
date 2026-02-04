@@ -27,16 +27,16 @@ import causal.grafical_criteria_for_O as gcO
 
 if __name__ == '__main__':
 
-    JSON = "BN_DATA/synthetic_bn_many_separators_cpt_07.json"   # your example file  #bn_12_nodes
-
+    #JSON = "BN_DATA/synthetic_bn_many_separators_cpt_07.json"   # your example file  #bn_12_nodes
+    JSON = "BN_DATA/bn_amazon_redshift.json"
 
     # 0) Load DAG from JSON
     bn = load_bn_from_json(JSON, BNClass=BN)
 
     Iset = []
     R = bn.g.nodes
-    X = ["F"]  # treatments of interest
-    Y = ["J"]  # outcomes of interest
+    X = ["num_joins"]  # treatments of interest
+    Y = ["execution_time"]  # outcomes of interest
     K = 6
 
 
@@ -83,6 +83,8 @@ if __name__ == '__main__':
 
     results: Dict[Tuple[str, ...], float] = {}
     for Z in Z_sets:
+        if len(Z) == 0:
+            continue
         Z_key = tuple(sorted(Z))
 
     ###########################   for calculate the variance throgh observations #########################

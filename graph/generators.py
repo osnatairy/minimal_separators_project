@@ -163,14 +163,16 @@ def spanning_tree_then_orient(n: int,
     ואז מכוונים את כל הקשתות לפי סדר (permutation) כדי לקבל DAG.
     מחזירה (DiGraph, order_list) — order_list הוא הסדר (topological order used).
     """
-    if seed is not None:
-        random.seed(seed)
+    #if seed is not None:
+        #random.seed(seed)
+
+    rng = random.Random(seed)
 
     nodes =  [f"{node_prefix}{i}" for i in range(n)]#list(range(n))
 
     # יצירת עץ פורש פשוט: שרשור לפי permutation אקראית
     perm = nodes[:]
-    random.shuffle(perm)
+    rng.shuffle(perm)
     undirected_edges = set()
     for i in range(1, n):
         a, b = perm[i-1], perm[i]
@@ -184,7 +186,7 @@ def spanning_tree_then_orient(n: int,
             e = tuple(sorted((u, v)))
             if e in undirected_edges:
                 continue
-            if random.random() < prob_edge:
+            if rng.random() < prob_edge:
                 undirected_edges.add(e)
             # if (u, v) in undirected_edges:
             #     continue
@@ -193,13 +195,13 @@ def spanning_tree_then_orient(n: int,
 
     # בחר סדר לכיוון (נשתמש ב-permutation אקראית)
     order = nodes[:]
-    random.shuffle(order)
+    rng.shuffle(order)
 
     # אם רוצים k_roots — בוחרים k צמתים שיהיו ראשונים בסדר
     if k_roots is not None and k_roots > 0:
         if k_roots > n:
             raise ValueError("k_roots cannot exceed n")
-        roots = random.sample(nodes, k_roots)
+        roots = rng.sample(nodes, k_roots)
         remaining = [x for x in order if x not in roots]
         order = roots + remaining
 

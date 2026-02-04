@@ -3,6 +3,10 @@ from pathlib import Path
 import networkx as nx
 from networkx.drawing.nx_pydot import read_dot
 
+import re
+from collections import defaultdict
+from typing import Dict, List, Tuple
+
 def normalize_node(n: str) -> str:
     n = str(n).strip()
     if n.startswith('"') and n.endswith('"'):
@@ -104,3 +108,66 @@ def build_redshift_dag_from_dot(
 
     G.graph["st"] = (s, t)
     return G
+
+
+
+EDGE_RE = re.compile(r'^\s*"?([A-Za-z0-9_]+)"?\s*->\s*"?([A-Za-z0-9_]+)"?\s*;?\s*$')
+
+def parse_dot_graph(dot_path: str) -> Tuple[List[str], List[Tuple[str, str]], Dict[str, List[str]]]:
+    """
+    מחזיר:
+      nodes: רשימת צמתים (בסדר הופעה)
+      edges: רשימת קשתות (src, dst) בסדר הופעה
+      parents: dict child -> [parents...] בסדר הופעה בקובץ
+    """
+    nodes_order: List[str] = []
+    seen_nodes = set()
+
+    edges: List[Tuple[str, str]] = []
+    parents: Dict[str, List[str]] = defaultdict(list)
+
+    with open(dot_path, "r", encoding="utf-8") as f:
+        for raw_line in f:
+            line = raw_line.strip()
+
+            # דלג על שורות שאינן קשתות/הצהרות
+            if not line or line.startswith("//"):
+                continue
+
+            # נסה לזהות קשת A -> B
+            m = EDGE_RE.match(line)
+            if m:
+                src, dst = m.group(1), m.group(2)
+
+                # שמירת סדר צמתים
+                for n in (src, dst):
+                    if n not in seen_nodes:
+                        nodes_order.append(n)
+                        seen_nodes.add(n)
+
+                edges.append((src, dst))
+
+                # שמירת סדר הורים לילד
+                if src not in parents[dst]:
+                    parents[dst].append(src)
+
+                # ודא שהצמתים קיימים גם אם אין להם הורים
+                parents.setdefault(src, parents.get(src, []))
+                continue
+
+            # אפשר גם לזהות הצהרת צומת בודדת כמו: query_template;
+            # (בדוגמה שלך יש block של שמות צמתים בלי קשתות)
+            if line.endswith(";"):
+                token = line[:-1].strip().strip('"')
+                # אם זו לא מילה של DOT כמו digraph / { / }
+                if token and token not in ("digraph", "{", "}"):
+                    if token not in seen_nodes:
+                        nodes_order.append(token)
+                        seen_nodes.add(token)
+                    parents.setdefault(token, parents.get(token, []))
+
+    # ודא שלכל node יש ערך ב-parents
+    for n in nodes_order:
+        parents.setdefault(n, [])
+
+    return nodes_order, edges, dict(parents)

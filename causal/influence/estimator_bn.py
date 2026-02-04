@@ -1,6 +1,8 @@
 from typing import Dict, List, Tuple, Callable, Any
+from itertools import product
 
-from bn.bayesian_network import BN         # רשת בייסיאנית שלך :contentReference[oaicite:2]{index=2}
+from bn.bayesian_network import BN
+from bn.pgmpy_adapter import bn_to_pgmpy_model# רשת בייסיאנית שלך :contentReference[oaicite:2]{index=2}
 from causal.policies import PolicyFn
 
 # ---------- עזר: איטרציה על השמותות של Z ----------
@@ -27,6 +29,7 @@ def _enum_assignments(bn: BN, vars_subset: List[str]):
 
 def compute_b_and_var_Y_given_AZ(
     bn: BN,
+    infer,               # pgmpy.inference.VariableElimination
     Y: str,
     A_name: str,
     Z_vars: List[str],
@@ -53,6 +56,38 @@ def compute_b_and_var_Y_given_AZ(
         else:
             raise ValueError("Y אינו בינארי. ספק/י value_map שממפה כל ערך Y למספר.")
 
+    domY = list(bn.domains[Y])
+    y_vals = [float(value_map[y]) for y in domY]  # בסדר דומיין Y
+
+    b_map: Dict[Tuple[Any, Tuple], float] = {}
+    var_map: Dict[Tuple[Any, Tuple], float] = {}
+
+    A_domain = list(bn.domains[A_name])
+
+    # --- 2) לולאה על כל השמות Z, ואז על A ---
+    for z_assign in _enum_assignments(bn, Z_vars):
+        z_tuple = tuple(z_assign[z] for z in Z_vars)
+
+        for a_val in A_domain:
+            evidence = {A_name: a_val, **z_assign}
+
+            # --- 3) שאילתה אחת בלבד: P(Y | evidence) ---
+            factorY  = infer.query(variables=[Y], evidence=evidence, show_progress=False)
+
+            # --- 4) הוצאה של P(Y=y | evidence) לכל y בדומיין ---
+            probs = [float(factorY.get_value(**{Y: y})) for y in domY]
+
+            # --- 5) חישוב תוחלת ושונות ---
+            EY = sum(p * v for p, v in zip(probs, y_vals))
+            EY2 = sum(p * (v ** 2) for p, v in zip(probs, y_vals))
+            varY = EY2 - EY ** 2
+
+            key = (a_val, z_tuple)
+            b_map[key] = EY
+            var_map[key] = max(varY, 0.0)
+
+    return b_map, var_map
+    '''
     def y_num(y):
         return float(value_map[y])
 
@@ -83,6 +118,7 @@ def compute_b_and_var_Y_given_AZ(
             var_map[key] = max(varY, 0.0)  # הגנה מספרית קטנה
 
     return b_map, var_map
+    '''
 
 
 
@@ -90,18 +126,63 @@ def compute_b_and_var_Y_given_AZ(
 
 def compute_PZ_and_PAZ(
     bn: BN,
+    infer,  # pgmpy.inference.VariableElimination
     A_name: str,
     Z_vars: List[str],
 ) -> Tuple[Dict[Tuple, float], Dict[Tuple[Any, Tuple], float]]:
     """
-    מחשבת את:
+    מחשבת ביעילות:
       P(Z=z)
       P(A=a, Z=z)
 
     מחזירה:
       PZ[z_tuple]            -> P(Z=z)
       PAZ[(a_val, z_tuple)]  -> P(A=a, Z=z)
+
+    יעילות:
+      במקום לקרוא bn.marginal_prob אלפי/מיליוני פעמים,
+      עושים 2 קריאות אינפרנס בלבד:
+        1) query על Z_vars לקבלת P(Z)
+        2) query על [A]+Z_vars לקבלת P(A,Z)
     """
+
+    # סדר קבוע חשוב כדי שהתוצאות יהיו עקביות
+    Z = list(Z_vars)
+    A = A_name
+    A_domain = list(bn.domains[A])
+
+    # --- 1) מחשבים P(Z) בבת אחת ---
+    # qZ הוא DiscreteFactor על המשתנים Z (באותו סדר כמו שביקשנו ב-variables)
+    qZ = infer.query(variables=Z, evidence={}, show_progress=False)
+
+    # --- 2) מחשבים P(A,Z) בבת אחת ---
+    # qAZ הוא DiscreteFactor על (A ואז Z...) (שוב, לפי סדר variables)
+    qAZ = infer.query(variables=[A] + Z, evidence={}, show_progress=False)
+
+    # --- 3) פורשים את qZ למילון PZ ---
+    # state_names מאפשר לנו לעבוד עם הערכים המקוריים (0/1 וכו')
+    z_states_lists = [list(qZ.state_names[v]) for v in Z]  # דומיין לכל Zi לפי pgmpy
+    PZ: Dict[Tuple, float] = {}
+
+    for z_vals in product(*z_states_lists):
+        # בונים kwargs בסגנון {Z1:val1, Z2:val2, ...}
+        kwargs = {v: val for v, val in zip(Z, z_vals)}
+        PZ[tuple(z_vals)] = float(qZ.get_value(**kwargs))
+
+    # --- 4) פורשים את qAZ למילון PAZ ---
+    az_states_lists = [list(qAZ.state_names[A])] + [list(qAZ.state_names[v]) for v in Z]
+    PAZ: Dict[Tuple[Any, Tuple], float] = {}
+
+    # עוברים על כל (a, z)
+    for a_val in az_states_lists[0]:
+        for z_vals in product(*az_states_lists[1:]):
+            kwargs = {A: a_val}
+            kwargs.update({v: val for v, val in zip(Z, z_vals)})
+            p = float(qAZ.get_value(**kwargs))
+            PAZ[(a_val, tuple(z_vals))] = p
+
+    return PZ, PAZ
+'''
     PZ: Dict[Tuple, float] = {}
     PAZ: Dict[Tuple[Any, Tuple], float] = {}
 
@@ -121,6 +202,7 @@ def compute_PZ_and_PAZ(
             PAZ[(a_val, z_tuple)] = float(p_az)
 
     return PZ, PAZ
+'''
 
 
 # ---------- 3. f(A|Z) – Propensity score ----------
@@ -292,13 +374,15 @@ def asymptotic_variance_for_Z(
       - מספר ממשי: σ^2_{π,Z}(P)
     """
 
+    model, infer = bn_to_pgmpy_model(bn)
+
     # 1) b(a,z) ו-varY(a,z)
     b_map, var_map = compute_b_and_var_Y_given_AZ(
-        bn, Y, A_name, Z_vars, value_map=value_map
+        bn, infer, Y, A_name, Z_vars, value_map=value_map
     )
 
     # 2) P(Z) ו-P(A,Z)
-    PZ, PAZ = compute_PZ_and_PAZ(bn, A_name, Z_vars)
+    PZ, PAZ = compute_PZ_and_PAZ(bn,infer, A_name, Z_vars)
 
     # 3) f(A|Z)
     f_map = compute_f_A_given_Z(PZ, PAZ)
