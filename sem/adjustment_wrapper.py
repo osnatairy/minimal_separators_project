@@ -31,9 +31,10 @@ def all_reachable_xy_pairs(G: nx.DiGraph) -> List[Tuple[str, str]]:
 def run_many_xy(
     G: nx.DiGraph,
     *,
-    mode: str = "reachable",          # "reachable" | "all"
-    sample_k: Optional[int] = 20,     # None -> run all pairs
-    seed: int = 123,
+    mode: str = "reachable",
+    seed: int = 123,# "reachable" | "all"
+    sample_k: Optional[int] = None,     # None -> run all pairs
+
 ) -> Dict[Tuple[str, str], List[List[str]]]:
     """
     For the SEM's DAG, enumerate adjustment sets for many X,Y pairs.

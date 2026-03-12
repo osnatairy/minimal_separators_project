@@ -32,7 +32,7 @@ if __name__ == '__main__':
         ("num_joins", "elapsed_time"),
 
         ("num_tables", "planning_time"),
-        ("num_tables", "execution_time"),
+         ("num_tables", "execution_time"),
         ("num_tables", "elapsed_time"),
 
         ("num_columns", "execution_time"),
@@ -76,17 +76,20 @@ if __name__ == '__main__':
         #results[s_t] = Z_unique
 
         forward, reverse = cy_components_for_sets(H, Y[0], Z_sets)
-        print(forward, reverse)
+        #print(forward, reverse)
         # get Hass graph for the Z - the adjustment sets
         res = hasse_from_cy_results(forward, reverse)
-        print("***************************************")
-        print(res)
-        print("***************************************")
-        utils.visualize_g(G)
-        utils.visualize_g(H)
-        if not False:#all_empty(Z_unique):
-            utils.visualize_g(G)
-            utils.visualize_g(H)
+        #print("***************************************")
+        #print(res)
+        #print("***************************************")
+
+        if len(res['hasse_edges']) >0:
+            print(s_t)
+        #utils.visualize_g(G)
+        #utils.visualize_g(H)
+        # if not False:#all_empty(Z_unique):
+        #     utils.visualize_g(G)
+        #     utils.visualize_g(H)
 
         curr_result = find_containment_pairs(res)
         if curr_result:

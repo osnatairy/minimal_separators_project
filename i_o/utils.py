@@ -5,6 +5,8 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Tuple, Any, Optional,Iterable
 
+from sympy.logic.boolalg import Boolean
+
 
 def save_list_json(items: Iterable[Any], filepath: str | Path) -> Path:
     """
@@ -22,10 +24,81 @@ def save_list_json(items: Iterable[Any], filepath: str | Path) -> Path:
 
     return path.resolve()
 
-def append_line(filename, line):
+def append_line(filename, line, new_line = True):
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     with open(filename, "a", encoding="utf-8") as f:
         f.write(line + "\n")
+
+
+def write_bucket_stats_to_csv(
+    filename: str,
+    results: List[Dict[str, Any]],
+    headers: Boolean = True,
+):
+    """
+    Write bucket statistics to a CSV file.
+
+    Parameters
+    ----------
+    results : list of dicts
+        Each dict has keys:
+        'bucket', 'num_separators',
+        'variance_sum', 'variance_mean', 'variance_median'
+    filename : str
+        Path to output CSV file
+    """
+    if headers:
+        fieldnames = [
+            "seed",
+            "X",
+            "Y",
+            "bucket",
+            "separator",
+            "variance",
+            #"variance_max",
+            #"variance_min",
+            #"variance_sum",
+            #"variance_mean",
+            #"variance_median",
+            "y_component_len",
+            #"y_component_max",
+            #"y_component_min"
+            #"y_component_sum",
+            #"y_component_mean",
+            #"y_component_median"
+            "\n",
+        ]
+
+        append_line(filename, ",".join(fieldnames))
+    else:
+        new_row = ""
+        for bucket in results:
+            for row in results[bucket]:
+                new_row += ""
+                line = (
+                    f"{str(row['seed'])},"
+                    f"{str(row['X'])},"
+                    f"{str(row['Y'])},"
+                    f"{str(row['bucket'])},"
+                    f"{';'.join(row['seperator'])},"
+                 f"{str(row['variance'])},"
+                # f"{str(row['variance_max'])},"
+                # f"{str(row['variance_min'])},"
+                # f"{str(row['variance_sum'])},"
+                # f"{str(row['variance_mean'])},"
+                # f"{str(row['variance_median'])},"
+                 f"{str(row['y_component_len'])},")
+                # f"{str(row['y_component_max'])},"
+                # f"{str(row['y_component_min'])},"
+                # f"{str(row['y_component_sum'])},"
+                # f"{str(row['y_component_mean'])},"
+                # f"{str(row['y_component_median'])}")
+
+                new_row += line
+                new_row += '\n'
+
+        append_line(filename, new_row, False)
+
 
 
 

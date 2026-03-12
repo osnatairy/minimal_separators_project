@@ -8,7 +8,7 @@ from collections import defaultdict
 Node = Hashable
 
 
-from typing import Iterable, List, Tuple, Dict, Optional
+from typing import Iterable, List, Tuple, Dict, Optional, Any
 def _normalize_family(family: Iterable[Iterable]) -> List[frozenset]:
     uniq = set()
     norm = []
@@ -118,6 +118,7 @@ def hasse_from_cy_results(
     idx_of = {c: i for i, c in enumerate(component_nodes)}
     edges_idx = [(idx_of[A], idx_of[B]) for (A, B) in hasse_edges]
 
+
     return {
         "component_nodes": component_nodes,
         "hasse_edges": hasse_edges,
@@ -209,6 +210,26 @@ def extract_separator_containment_pairs(res):
 
 def frozenset_to_str(fs):
     return ";".join(sorted(fs))
+
+
+def adjustment_set_exists(family_of_families: Iterable[Iterable[Iterable[Any]]], target_set: Iterable[Any]) -> bool:
+    """
+    family_of_families: רשימה של רשימות של סטים/איטרבלים (למשל: [[{a},{a,b}], [{c}]] )
+    target_set: הסט/האיטרבל שאת רוצה לבדוק אם מופיע
+
+    מחזיר True אם target_set מופיע כאחד הסטים בתוך אחת הרשימות, אחרת False.
+    """
+    target_fs = frozenset(target_set)
+
+    for family in family_of_families:
+            if frozenset(family) == target_fs:
+                return True
+
+    return False
+
+def separator_is_subset(sep1: Iterable[Any], sep2: Iterable[Any]) -> bool:
+    """מחזיר True אם sep1 ⊆ sep2."""
+    return set(sep1).issubset(set(sep2))
 
 
 ##### EXAMPLE OF USE #####

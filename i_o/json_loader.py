@@ -74,13 +74,17 @@ def load_bn_from_json(path, BNClass):
 
 
 #save sem graph to file
-def save_linear_sem(path: str, sem: LinearSEM) -> None:
+def save_linear_sem(path: str, sem: LinearSEM, pairs, Z_sets) -> None:
     payload: Dict[str, Any] = {
         "nodes": list(sem.G.nodes()),
         "edges": [[u, v] for (u, v) in sem.G.edges()],
         "beta": sem.beta,
         "sigma2": sem.sigma2,
+        "len(pairs)": len(pairs),
+        "Z_sets": Z_sets,
     }
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+
     with open(path, "w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2, ensure_ascii=False)
 
@@ -134,3 +138,18 @@ def build_bn_json(
         "cpts": cpts,
     }
     return out
+
+
+def save_bn_json(out_path, bn):
+
+    out_json = build_bn_json(
+        nodes=bn.nodes,
+        edges=bn.edges,
+        parents_map=[],#bn.parents_map,
+        domains=[],#bn.domains,
+        cpts=[]#bn.cpts,
+    )
+
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(out_json, f, ensure_ascii=False, indent=2)
+

@@ -55,6 +55,78 @@ def sample_linear_parameters(
     return beta, sigma2
 
 
+def sample_linear_parameters_stabilized(
+        G: nx.DiGraph,
+        beta_scale: float = 0.5,  # מומלץ להוריד ל-0.5
+        sigma2_low: float = 0.2,
+        sigma2_high: float = 1.0,
+        max_var_threshold: float = 5.0,  # הסף המקסימלי לשונות של צומת
+        seed: int = 1
+) -> Tuple[Dict[str, float], Dict[str, float]]:
+    rng = np.random.default_rng(seed)
+    beta: Dict[str, float] = {}
+    sigma2: Dict[str, float] = {}
+
+    # נשמור כאן את השונות המוערכת של כל צומת בזמן אמת
+    node_variances: Dict[str, float] = {}
+
+    # מעבר לפי סדר טופולוגי מבטיח שאנחנו מטפלים בהורים לפני הילדים
+    topo_order = list(nx.topological_sort(G))
+
+    for v in topo_order:
+        # 1. דגימת שונות עצמית (Noise)
+        s2 = float(rng.uniform(low=sigma2_low, high=sigma2_high))
+        sigma2[v] = s2
+
+        # 2. חישוב השונות שמגיעה מההורים
+        parents = list(G.predecessors(v))
+        if not parents:
+            # צומת שורש - השונות שלו היא רק הרעש העצמי
+            node_variances[v] = s2
+            continue
+
+        # דוגמים בטאות ראשוניות
+        current_betas = {u: float(rng.normal(loc=0.0, scale=beta_scale)) for u in parents}
+
+        # חישוב השונות המצטברת (קירוב ללא קו-וריאנס למטרת בקרה)
+        incoming_var = sum((current_betas[u] ** 2) * node_variances[u] for u in parents)
+
+        # 3. מנגנון הריסון (Taming)
+        # אם השונות המצטברת גדולה מדי, ננרמל את הבטאות שנכנסות לצומת
+        total_potential_var = incoming_var + s2
+        if total_potential_var > max_var_threshold:
+            # אם השונות הנכנסת זניחה, אין צורך בנרמול (מונע חילוק ב-0)
+            if incoming_var < 1e-10:
+                shrink_factor = 1.0
+            else:
+                # הגנה: אם s2 לבדו גדול מהסף, המונה יהיה 0 והבטאות יתאפסו
+                numerator = max(0.0, max_var_threshold - s2)
+                shrink_factor = np.sqrt(numerator / incoming_var)
+
+            # עדכון הבטאות עם מקדם הריסון
+            for u in parents:
+                current_betas[u] *= shrink_factor
+
+            # חישוב מחדש של השונות הנכנסת לאחר התיקון
+            incoming_var = sum((current_betas[u] ** 2) * node_variances[u] for u in parents)
+
+        # if total_potential_var > max_var_threshold:
+        #     # מקדם תיקון כדי להחזיר את השונות לסף המותר
+        #     shrink_factor = np.sqrt((max_var_threshold - s2) / incoming_var)
+        #     for u in parents:
+        #         current_betas[u] *= shrink_factor
+        #
+        #     incoming_var = sum((current_betas[u] ** 2) * node_variances[u] for u in parents)
+
+        # שמירת הבטאות הסופיות והשונות המעודכנת
+        for u in parents:
+            beta[f"{u}->{v}"] = current_betas[u]
+
+        node_variances[v] = incoming_var + s2
+
+    return beta, sigma2
+
+
 
 # -----------------------------
 # 4) שמירה/טעינה JSON כדי לשחזר בדיוק את אותו מודל
@@ -157,13 +229,24 @@ def make_linear_sem(
                     node_prefix=node_prefix,
                     seed=seed_graph)
 
-    beta, sigma2 = sample_linear_parameters(
+    # beta, sigma2 = sample_linear_parameters(
+    #     G=G,
+    #     beta_scale=beta_scale,
+    #     sigma2_low=sigma2_low,
+    #     sigma2_high=sigma2_high,
+    #     seed=seed_params
+    # )
+
+    beta, sigma2 = sample_linear_parameters_stabilized(
         G=G,
         beta_scale=beta_scale,
         sigma2_low=sigma2_low,
         sigma2_high=sigma2_high,
+        max_var_threshold=0.5,
         seed=seed_params
     )
+
+
     return LinearSEM(G=G, beta=beta, sigma2=sigma2)
 
 

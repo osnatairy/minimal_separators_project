@@ -128,7 +128,7 @@ def parse_dot_graph(dot_path: str) -> Tuple[List[str], List[Tuple[str, str]], Di
 
     with open(dot_path, "r", encoding="utf-8") as f:
         for raw_line in f:
-            line = raw_line.strip()
+            line = raw_line.strip().lower()
 
             # דלג על שורות שאינן קשתות/הצהרות
             if not line or line.startswith("//"):

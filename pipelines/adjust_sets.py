@@ -34,15 +34,15 @@ def preprocess_H(
     """
 
     G = bn.g               # directed
-    [s, t] = [X[0], Y[0]]
+    [s, t] = [X, Y]
     G.graph['st'] = (s, t)
-    utils.visualize_g(G)
+    #utils.visualize_g(G)
     # 1) H^1
     H1 = build_H1_from_DAG(G, X=X, Y=Y, R=R, I=I)
 
     H1.graph['weighted'] = 0
     H1.graph['st'] = (s, t)
-    utils.visualize_g(H1)
+    #utils.visualize_g(H1)
 
     H = H1
     x = G.graph['st'][0]

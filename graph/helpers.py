@@ -75,3 +75,16 @@ def create_induced_subgraph(G, X, Y, I):
                     induced_subgraph[node][neighbor] = weight
 
     return induced_subgraph
+
+
+
+def separator_with_min_variance(sep2var: dict) :
+    """
+    sep2var: dict שבו key=מפריד, value=שונות (float/int)
+    מחזיר: (best_separator, min_variance)
+    """
+    if not sep2var:
+        raise ValueError("sep2var is empty")
+
+    best_sep, min_var = min(sep2var.items(), key=lambda kv: kv[1])
+    return best_sep, min_var

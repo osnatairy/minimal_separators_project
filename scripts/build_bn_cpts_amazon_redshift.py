@@ -30,15 +30,42 @@ def main():
     args = ap.parse_args()
     ROOT = Path(__file__).resolve().parents[1]
 
-    GRAPH_PATH = ROOT / "BN_DATA" / "amazon_redshift.dot"
-    DATA_PATH = ROOT / "BN_DATA" / "amazon_redshift_dataset.pkl"
-    OUT_PATH = ROOT / "BN_DATA" / "bn_amazon_redshift.json"
+    dataset_name = "amazon_redshift"
+    dataset_name = "flights"
+
+    GRAPH_PATH = ROOT / "BN_DATA" /dataset_name/ f"{dataset_name}.dot"
+    DATA_PATH = ROOT / "BN_DATA" /dataset_name/  f"{dataset_name}_dataset.csv"
+    OUT_PATH = ROOT / "BN_DATA" /dataset_name/  f"bn__{dataset_name}.json"
 
     # 1) Parse graph
     nodes, edges, parents_map = parse_dot_graph(GRAPH_PATH)
 
     # 2) Load data
     df = load_dataframe(DATA_PATH)
+    selected_cols = [
+
+        "MONTH",
+        "DAY_OF_WEEK",
+        "SCHEDULED_DEPARTURE",
+        "DISTANCE",
+        "AIR_TIME",
+        "TAXI_OUT",
+        "TAXI_IN",
+        "DEPARTURE_DELAY",
+        "ARRIVAL_DELAY",
+        "WEATHER_DELAY",
+        "AIRLINE_DELAY"
+
+    ]
+
+    df = df[selected_cols].copy()
+    df.columns = df.columns.str.lower()
+
+    # 2.5) turn field to binary
+    nobinary_cols = ["taxi_in","departure_delay","month","day_of_week","airline_delay","taxi_out","weather_delay","arrival_delay"]
+    for col in nobinary_cols:
+        thr = df[col].median()
+        df[col] = (df[col] > thr).astype(int)
 
     # 3) Discretize (make everything categorical)
     df_cat, domains = discretize_columns(
