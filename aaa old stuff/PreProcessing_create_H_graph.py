@@ -98,7 +98,7 @@ def find_causal_vertices_sets_v2(G, X, Y):
     # Removing X and Y themselves from the result (as we only want the nodes in the middle)
     causal = (reachable_from_X & can_reach_Y) - set(X) - set(Y)
 
-    return causal
+    return causal, (reachable_from_X & can_reach_Y)
 
 
 # Runs the appropriate function to find causal vertices according to the input type

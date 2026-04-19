@@ -61,6 +61,7 @@ def find_adjustment_sets_for_pair(
     G: nx.DiGraph,
     X: str,
     Y: str,
+    which: str,
     R: List[str],
     I: Optional[List[str]] = None
 ) -> List[List[str]]:
@@ -86,7 +87,7 @@ def find_adjustment_sets_for_pair(
     H_int, name_to_id, id_to_name, s, t = relabel_to_ints(H, x, y)
 
     #seps_int = alg.start_algorithm(H_int)
-    seps_int = run_enumerator(H_int, s, t)
+    seps_int = run_enumerator(H_int, s, t, which)
 
     # 4) Back to names
     Z_named = decode_separators(seps_int, id_to_name)

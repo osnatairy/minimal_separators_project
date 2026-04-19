@@ -5,7 +5,7 @@ from graph.helpers import separator_with_min_variance
 
 from sem.linear_sem import make_linear_sem
 from sem.adjustment_wrapper import run_many_xy
-from sem.variance import example_compute_avar, conditional_variance_from_cov,sigma_from_sem
+from sem.variance import example_compute_avar, conditional_variance_from_cov,sigma_from_sem, x_drain_two_sets
 
 from i_o.utils import save_list_json, append_line,write_bucket_stats_to_csv
 from i_o.json_loader import save_linear_sem
@@ -25,26 +25,55 @@ if __name__ == "__main__":
 
     import random
 
-    N = 20
-    nodes = [25, 50, 100]
-    prob_nodes = [0.15,0.20, 0.25]#, 0.5, 0.7]
+    N = 10
+    nodes = [20,30,40, 50]
+    prob_nodes =[0.07, 0.1, 0.15, 0.2, 0.3]
     betas = [0.7]
 
+    date = "2026_04_13"
 
     for node in nodes:
         for prob_node in prob_nodes:
-            for beta in betas:
+            for k_roots in [node, int(node*0.3), 3, 1]:
 
 
 
                 seeds_to_keep = []
-                variance = f"SEM_{node}_{prob_node}_beta07"
-                bucket_file = f"outputs/11_3_23_bucket_statistics_{variance}.csv"
+                variance = f"_{node}_{prob_node}_{k_roots}"
+                bucket_file = f"outputs_sem/{date}_bucket_statistics_{variance}.csv"
                 write_bucket_stats_to_csv(bucket_file, [])
                 buckets_results = {}
 
-                file_name = f"outputs/11_3_23_seeds_data_main_{variance}.csv"
-                graph_path = "outputs/graph/"
+                file_name = f"outputs_sem/{date}_seeds_data_main_{variance}.csv"
+
+                new_file_name = file_name.replace(".csv", "_seperators.csv")
+                append_line(new_file_name,
+                            "seed," +
+                            "X," +
+                            "Y," +
+                            'outer_sep,' +
+                            "outer_sep len," +
+                             "var_y_given_xz_out," +
+                            # 'var_x_given_z_out,'+
+                            # 'outer_component,' +
+                            "outer_sep var," +
+                            'inner_sep,' +
+                            'inner_sep len,' +
+                            'var_y_given_xz_in,' +
+                            #'var_x_given_z_in,' +
+                            # 'inner_component,' +
+                            'inner_sep var,' +
+                            "diff sep var," +
+                            "diff sep var > 0,"
+                            "diff size"   + "," +
+                            'X-Drain_in' + "," +
+                            'X-Drain_out' + ","
+                            "diff-drain"
+                            # str(is_O_in_Z)+ ","+
+                            # str(is_O_in_optimal_z)
+                            )
+
+                graph_path = "outputs_sem/graph/"
                 append_line(file_name,
                             "seed, graph_nodes, graph_edges,X, Y, H_graph_nodes, H_graph_edges, num_seperator, num_contained_separators\n")
                 for seed in range(N):
@@ -52,11 +81,15 @@ if __name__ == "__main__":
                     sem = make_linear_sem(
                         n=node,
                         edge_prob=prob_node,
-                        beta_scale=beta,
+                        # beta_scale=beta,
+                        # sigma2_low=0.2,
+                        # sigma2_high= 0.9,
+                        beta_scale=1.0,
                         sigma2_low=0.2,
-                        sigma2_high= 0.9,
+                        sigma2_high=1.0,
                         node_prefix="V",
-                        seed=seed
+                        seed=seed,
+                        k_roots=k_roots
                     )
 
 
@@ -69,7 +102,7 @@ if __name__ == "__main__":
                     )
 
                     test_mode: bool = False
-                    #file_name: str = "outputs/defualt.csv"
+                    #file_name: str = "outputs_sem/defualt.csv"
 
                     R = list(sem.G.nodes())
                     I = []
@@ -78,7 +111,7 @@ if __name__ == "__main__":
                     results1: Dict[Tuple[str, ...], float] = {}
 
                     for X, Y in pairs:
-                        H, Z_sets = find_adjustment_sets_for_pair(sem.G, X, Y, R=R, I=I)
+                        H, Z_sets = find_adjustment_sets_for_pair(sem.G, X, Y,"smallminimalseps", R=R, I=I)
 
                         forward, reverse = cy_components_for_sets(H, Y, Z_sets)
                         #print(forward, reverse)
@@ -151,7 +184,7 @@ if __name__ == "__main__":
                             var_names, Sigma = sigma_from_sem(sem)
 
                             pair_adjustment = extract_separator_containment_pairs(res)
-                            new_file_name = file_name.replace(".csv", "_seperators.csv")
+
                             for hass in pair_adjustment:
 
                                 var_x_given_z_out = conditional_variance_from_cov(
@@ -167,6 +200,10 @@ if __name__ == "__main__":
                                     ridge=1e-10
                                 )
 
+                                drains = x_drain_two_sets(sem, X, hass['inner_sep'], hass['outer_sep'])
+
+
+
 
 
                                 append_line(new_file_name,
@@ -176,22 +213,25 @@ if __name__ == "__main__":
                                             frozenset_to_str(hass['outer_sep']) + "," +
                                             str(len(hass['outer_sep'])) + "," +
                                             str(var_y_given_xz_out) + ',' +
-                                            str(var_x_given_z_out)+','+
-                                            frozenset_to_str(hass['outer_component']) + "," +
+                                            #str(var_x_given_z_out)+','+
+                                            #frozenset_to_str(hass['outer_component']) + "," +
                                             str(round(results1[tuple(sorted(hass['outer_sep']))], 5)) + "," +
                                             frozenset_to_str(hass['inner_sep']) + "," +
                                             str(len(hass['inner_sep'])) + "," +
                                             str(var_y_given_xz_in) + ',' +
-                                            str(var_x_given_z_in) + ',' +
-                                            frozenset_to_str(hass['inner_component']) + "," +
+                                            #str(var_x_given_z_in) + ',' +
+                                            #frozenset_to_str(hass['inner_component']) + "," +
                                             str(round(results1[tuple(sorted(hass['inner_sep']))], 5)) + "," +
                                             str(round(results1[tuple(sorted(hass['outer_sep']))], 5) - round(
                                                 results1[tuple(sorted(hass['inner_sep']))], 5))+ ","+
                                             str(round(results1[tuple(sorted(hass['outer_sep']))], 5) - round(
                                                 results1[tuple(sorted(hass['inner_sep']))], 5) < 0)+ "," +
                                             str(len(hass['outer_sep']) - len(hass['inner_sep'])) + "," +
-                                            str(is_O_in_Z)+ ","+
-                                            str(is_O_in_optimal_z)
+                                            str(drains['X-Drain(Z1)'])+","+
+                                            str(drains['X-Drain(Z2)']) + ","+
+                                            str(drains['X-Drain(Z2)']- drains['X-Drain(Z1)']) + ","
+                                            #str(is_O_in_Z)+ ","+
+                                            #str(is_O_in_optimal_z)
                                             )
 
 
@@ -226,11 +266,11 @@ if __name__ == "__main__":
                     if len(results) > 0:
                         seeds_to_keep.append(seed)
 
-                save_list_json(seeds_to_keep, "outputs/seeds_to_keep.json")
+                save_list_json(seeds_to_keep, "outputs_sem/seeds_to_keep.json")
 
                 write_bucket_stats_to_csv(bucket_file, buckets_results, False)
 
-
+    print("End of this script")
                 # make_bucket_boxplots(
                 #     bucket_file,
                 #     variance=variance,
@@ -243,7 +283,7 @@ if __name__ == "__main__":
                 #     #output_dir=f"bucket_statistics_SEM{variance}",
                 #     mode="per_run",
                 # )
-                '''
+    '''
                 # 3) Print a compact summary
                 scores = []
                 for (X, Y), Z_sets in results.items():

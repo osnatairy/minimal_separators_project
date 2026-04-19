@@ -73,7 +73,7 @@ if __name__ == "__main__":
 
     # pairs = [pairs[0]]
     for X, Y in pairs:
-        H, Z_sets = find_adjustment_sets_for_pair(bn.g, X, Y, R=R, I=I)
+        H, Z_sets = find_adjustment_sets_for_pair(bn.g, X, Y,"smallminimalseps", R=R, I=I)
 
         forward, reverse = cy_components_for_sets(H, Y, Z_sets)
         print(forward, reverse)

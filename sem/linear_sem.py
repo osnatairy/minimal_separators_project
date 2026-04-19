@@ -60,7 +60,7 @@ def sample_linear_parameters_stabilized(
         beta_scale: float = 0.5,  # מומלץ להוריד ל-0.5
         sigma2_low: float = 0.2,
         sigma2_high: float = 1.0,
-        max_var_threshold: float = 5.0,  # הסף המקסימלי לשונות של צומת
+        max_var_threshold: float = 20.0,  # הסף המקסימלי לשונות של צומת
         seed: int = 1
 ) -> Tuple[Dict[str, float], Dict[str, float]]:
     rng = np.random.default_rng(seed)
@@ -87,6 +87,7 @@ def sample_linear_parameters_stabilized(
 
         # דוגמים בטאות ראשוניות
         current_betas = {u: float(rng.normal(loc=0.0, scale=beta_scale)) for u in parents}
+        #current_betas = {u: float(rng.uniform(low=0.1, high=0.9)) * rng.choice([-1, 1]) for u in parents}
 
         # חישוב השונות המצטברת (קירוב ללא קו-וריאנס למטרת בקרה)
         incoming_var = sum((current_betas[u] ** 2) * node_variances[u] for u in parents)
@@ -94,7 +95,7 @@ def sample_linear_parameters_stabilized(
         # 3. מנגנון הריסון (Taming)
         # אם השונות המצטברת גדולה מדי, ננרמל את הבטאות שנכנסות לצומת
         total_potential_var = incoming_var + s2
-        if total_potential_var > max_var_threshold:
+        if False:#total_potential_var > max_var_threshold:
             # אם השונות הנכנסת זניחה, אין צורך בנרמול (מונע חילוק ב-0)
             if incoming_var < 1e-10:
                 shrink_factor = 1.0
@@ -211,7 +212,8 @@ def make_linear_sem(
     sigma2_high: float = 1.0,
     num_layers: int = 5,
     node_prefix: str = "V",
-    seed: int = 1
+    seed: int = 1,
+    k_roots = 3
 
 ) -> LinearSEM:
     """
@@ -222,7 +224,7 @@ def make_linear_sem(
     seed_graph, seed_params = utils.split_seeds(seed)
 
     G1 = layered_dag(n=n, prob_edge=edge_prob, seed=seed_graph)
-    k_roots = 3
+
     G = spanning_tree_then_orient(n=n,
                     prob_edge=edge_prob,
                     k_roots=k_roots,

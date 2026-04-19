@@ -243,3 +243,36 @@ def split_seeds(seed: int) -> tuple[int, int]:
     return seed_graph, seed_params
 
 
+def get_non_minimal_separators(all_separators, minimal_separators):
+    """
+       Return the list of non-minimal separators.
+
+       Parameters
+       ----------
+       all_separators : list[list]
+           A list containing all separators produced by an algorithm
+           (including both minimal and non-minimal separators).
+
+       minimal_separators : list[list]
+           A list containing only the minimal separators.
+
+       Returns
+       -------
+       list[list]
+           A list containing only the non-minimal separators, i.e.,
+           separators that appear in `all_separators` but not in
+           `minimal_separators`.
+
+       Notes
+       -----
+       Separators are compared as sets, so the order of elements inside
+       each separator does not affect the comparison.
+       """
+    minimal_sets = {frozenset(s) for s in minimal_separators}
+
+    non_minimal = [
+        s for s in all_separators
+        if frozenset(s) not in minimal_sets
+    ]
+
+    return non_minimal

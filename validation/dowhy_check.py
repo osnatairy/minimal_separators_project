@@ -39,6 +39,8 @@ def test_Z_with_dowhy(G, X, Y, Z_sets):
     raw_sets = list(bd.values())
     sorted_raw_sets = sort_and_dedup_subsets(raw_sets)
 
+    return sorted_raw_sets
+
     for z in Z_sets:
         exists = contains_set(raw_sets, z)
         print(f"{z}: {exists}")

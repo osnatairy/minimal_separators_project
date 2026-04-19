@@ -2,3 +2,6 @@
 scripts/outputs/
 
 BN_DATA/
+
+*.csv
+*.json

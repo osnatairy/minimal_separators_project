@@ -148,6 +148,22 @@ def avar_henckel_single_xy(
 
 def example_compute_avar(sem, X: str, Y: str, Z: List[str], ridge: float = 1e-10):
     var_names, Sigma = sigma_from_sem(sem)
+    '''
+    var_names = ["V0", "V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9", "V10", "V11"]
+    i = {v: k for k, v in enumerate(var_names)}
+
+    print("Sigma[V0,V0] =", Sigma[i["V0"], i["V0"]])
+    print("Sigma[V8,V8] =", Sigma[i["V8"], i["V8"]])
+    print("Sigma[V4,V4] =", Sigma[i["V4"], i["V4"]])
+    print("Sigma[V5,V5] =", Sigma[i["V5"], i["V5"]])
+    print("Sigma[V0,V8] =", Sigma[i["V0"], i["V8"]])
+    print("Sigma[V0,V4] =", Sigma[i["V0"], i["V4"]])
+    print("Sigma[V0,V5] =", Sigma[i["V0"], i["V5"]])
+
+    print("סדר הצמתים:", var_names)
+    print("האם הסדר טופולוגי?", var_names == sorted(var_names, key=lambda v: int(v[1:])))
+    '''
+
     aVar = avar_henckel_single_xy(Sigma, X=X, Y=Y, Z=Z, var_names=var_names, ridge=ridge)
     print("aVar =", aVar)
     return aVar

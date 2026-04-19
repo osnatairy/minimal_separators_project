@@ -80,7 +80,7 @@ def run_many_xy(
     results1: Dict[Tuple[str, ...], float] = {}
 
     for X, Y in pairs:
-        H, Z_sets = find_adjustment_sets_for_pair(G, X, Y, R=R, I=I)
+        H, Z_sets = find_adjustment_sets_for_pair(G, X, Y,"smallminimalseps", R=R, I=I)
 
         forward, reverse = adj.cy_components_for_sets(H, Y[0], Z_sets)
         print(forward, reverse)

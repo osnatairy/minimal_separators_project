@@ -5,7 +5,7 @@ from typing import List, Dict,Tuple,Iterable,Any
 import matplotlib.pyplot as plt
 import numpy as np
 
-OUTPUT_FOLDER = "outputs/12_3_26_bucket_statistics"
+OUTPUT_FOLDER = "outputs/23_3_26_bucket_statistics"
 
 def _safe_filename(s: str) -> str:
     return re.sub(r"[^A-Za-z0-9._-]+", "_", str(s)).strip("_")
@@ -337,6 +337,7 @@ def _combined_boxplot_by_bucket(
 def make_bucket_boxplots(
     input_file: str | Path,
     variance: str,
+    output_dir:str,
     mode: str = "global",   # "global" or "per_run"
 ) -> List[Path]:
     """
@@ -347,9 +348,10 @@ def make_bucket_boxplots(
     """
     rows = parse_bucket_stats_csv(input_file)
     if not rows:
+        print(input_file)
         raise ValueError("No data parsed from file.")
 
-    output_dir = Path(OUTPUT_FOLDER+"_"+variance)
+    output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     created: List[Path] = []

@@ -264,6 +264,25 @@ def create_clique_on_neighbors(graph, nodes):
     # Adding all edges
     graph.add_edges_from(edges_to_add)
 
+def saturate_and_remove_nodes(graph: nx.Graph, nodes_to_remove):
+    """
+    Saturate each node's neighborhood and remove the node, one by one.
+    This is crucial when nodes-to-remove are adjacent, because removing one
+    node may create new edges that affect the saturation of the next node.
+    """
+    for node in list(nodes_to_remove):
+        if node not in graph:
+            continue
+
+        neighbors = list(graph.neighbors(node))
+
+        # Make neighbors a clique
+        for i in range(len(neighbors)):
+            for j in range(i + 1, len(neighbors)):
+                graph.add_edge(neighbors[i], neighbors[j])
+
+        # Remove the node after saturation
+        graph.remove_node(node)
 
 # using to build graph from the read DAT file. (after export the data from it)
 def build_G_from_mapped_edges(
