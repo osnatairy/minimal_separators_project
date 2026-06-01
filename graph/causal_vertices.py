@@ -10,15 +10,11 @@ from graph.helpers import normalize_nodes_to_set
 #those are the vertices with a path from x to Y and reverse.
 #where the value of x and y is are specific nodes
 def find_causal_vertices(G, x, y):
-    descendants_x = set(nx.descendants(G, x))  # Anyone accessible from x
-    ancestors_y = set(nx.ancestors(G, y))  # Anyone who can reach y
+    descendants_x = set(nx.descendants(G, x)) | {x} # Anyone accessible from x and x
+    ancestors_y = set(nx.ancestors(G, y)) | {y} # Anyone who can reach y and y
 
     # The intersection = vertices that are between x and y
     causal = descendants_x & ancestors_y
-
-    # If there is a direct arc from x to y, add y
-    if G.has_edge(x, y):
-        causal.add(y)
 
     return causal
 
@@ -111,6 +107,7 @@ def find_causal_vertices_sets_optimized(G, X, Y):
         y = next(iter(Y))  # Removes the single braid from Y
         return find_causal_vertices(G, x, y)
 
+    #TODO: the functions below do not include X and Y in the returned answer.
     # If the groups are small, use "find_causal_vertices_sets_v1"
     elif len(X) <= 5 and len(Y) <= 5:
         return find_causal_vertices_sets_v1(G, X, Y)

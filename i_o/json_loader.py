@@ -76,8 +76,8 @@ def load_bn_from_json(path, BNClass):
 #save sem graph to file
 def save_linear_sem(path: str, sem: LinearSEM, pairs, Z_sets) -> None:
     payload: Dict[str, Any] = {
-        "nodes": list(sem.G.nodes()),
-        "edges": [[u, v] for (u, v) in sem.G.edges()],
+        "nodes": list(sem.g.nodes()),
+        "edges": [[u, v] for (u, v) in sem.g.edges()],
         "beta": sem.beta,
         "sigma2": sem.sigma2,
         "len(pairs)": len(pairs),

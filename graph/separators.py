@@ -8,6 +8,8 @@ import networkx as nx
 from collections import deque
 from typing import Iterable, List, Optional, Tuple, Set, Any
 
+from torchgen.api.cpp import return_names
+
 # your graph transform
 from graph.transforms import relabel_to_ints
 
@@ -23,7 +25,7 @@ def decode_separators(seps_int, id_to_name):
 
 
 
-def run_enumerator(H_int: nx.Graph, s: int, t: int, which="smallminimalseps", K=20, limit_seconds=120):
+def run_enumerator(H_int: nx.Graph, s: int, t: int, which="smallminimalseps", K=25, limit_seconds=120):
     """
     Run your minimal-separator enumerator. Returns a list[list[int]].
     which: "RankedEnumSeps" (RankedEnumSeps) or "small" (SmallMinimalSeps, uses K)
@@ -39,9 +41,20 @@ def run_enumerator(H_int: nx.Graph, s: int, t: int, which="smallminimalseps", K=
         seps, _stats, _total_time = enum_algorithms.RankedEnumSeps(H_int, event)
 
     # Normalize to sorted lists of ints
-    return [sorted(list(S)) for S in seps]
+    return [sorted(list(S)) for S in seps],_total_time
 
 
+def get_closest_to_s_t(G: nx.Graph,s,t):
+    #s = G.graph['st'][0]
+    G.graph['st'] = (s, t)
+    close_to_s =  enum_algorithms.MinimalstSepCloseToA(G, {s})
+
+    H = G.copy()
+    #s, t = H.graph['st']
+    H.graph['st'] = (t, s)
+    close_to_t = enum_algorithms.MinimalstSepCloseToA(H, {t})
+
+    return close_to_s, close_to_t
 
 def find_seperators(
     H: nx.Graph,
@@ -54,7 +67,10 @@ def find_seperators(
     H_int, name_to_id, id_to_name, s, t = relabel_to_ints(H, s, t)
 
     #seps_int = alg.start_algorithm(H_int)
-    seps_int = run_enumerator(H_int, s, t, which=which, K=K)
+    seps_int,time = run_enumerator(H_int, s, t, which=which, K=K)
+
+    if len(seps_int) >= 1 and len(seps_int[0]) == 0:
+        return []
 
     # 4) Back to names
     Z_named = decode_separators(seps_int, id_to_name)

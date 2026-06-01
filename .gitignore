@@ -5,3 +5,18 @@ BN_DATA/
 
 *.csv
 *.json
+
+
+__pycache__/
+*.pyc
+.idea/
+.idea-old/
+output/
+scripts/outputs_sem/
+scripts/*outputs*/
+scripts/closest_sep_outputs_bn/
+scripts/closest_sep_outputs_sem/
+scripts/combined_separator_graphs/
+scripts/containment_outputs*/
+scripts/test_data/
+*.png

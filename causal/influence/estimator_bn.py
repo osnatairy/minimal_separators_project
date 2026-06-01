@@ -4,6 +4,7 @@ from itertools import product
 from bn.bayesian_network import BN
 from bn.pgmpy_adapter import bn_to_pgmpy_model# רשת בייסיאנית שלך :contentReference[oaicite:2]{index=2}
 from causal.policies import PolicyFn
+from causal.influence.estimator_bn_sampling import asymptotic_variance_for_Z_sampling
 
 # ---------- עזר: איטרציה על השמותות של Z ----------
 
@@ -347,6 +348,82 @@ def compute_chi_pi_Z(
 
 def asymptotic_variance_for_Z(
     bn: BN,
+    infer,
+    Y: str,
+    A_name: str,
+    Z_vars: List[str],
+    L_vars: List[str],
+    policy_fn: PolicyFn,
+    value_map: Dict[Any, float] | None = None,
+) -> float:
+    """
+    פונקציה ראשית שמחשבת את השונות האסימפטוטית σ^2_{π,Z}(P) עבור קבוצת התאמה Z נתונה:
+
+      σ^2 = E_P[ ψ^2 ] =
+             Σ_{a,z} w(a,z)^2 Var(Y|A=a,Z=z) P(A=a,Z=z)
+           + Σ_z    (m(z) - χ)^2 P(Z=z)
+
+    קלט:
+      - bn: רשת בייסיאנית דיסקרטית
+      - Y:   שם משתנה התוצאה
+      - A_name: שם משתנה הטיפול A (למשל אותו X במאמר)
+      - Z_vars: רשימת שמות בקבוצת ההתאמה Z
+      - L_vars: תת־קבוצה של Z שעליהם תלויה המדיניות π(A|L)
+      - policy_fn: פונקציית מדיניות π(a, L_assign)
+      - value_map: מיפוי של ערכי Y לערכים מספריים (אם Y לא {0,1})
+
+    פלט:
+      - מספר ממשי: σ^2_{π,Z}(P)
+    """
+
+    #model, infer = bn_to_pgmpy_model(bn)
+
+    # 1) b(a,z) ו-varY(a,z)
+    b_map, var_map = compute_b_and_var_Y_given_AZ(
+        bn, infer, Y, A_name, Z_vars, value_map=value_map
+    )
+
+    # 2) P(Z) ו-P(A,Z)
+    PZ, PAZ = compute_PZ_and_PAZ(bn,infer, A_name, Z_vars)
+
+    # 3) f(A|Z)
+    f_map = compute_f_A_given_Z(PZ, PAZ)
+
+    # 4) π(A|L)
+    pi_map = compute_pi_A_given_L(bn, A_name, Z_vars, L_vars, policy_fn)
+
+    # 5) w = π/f
+    w_map = compute_weights_w(pi_map, f_map)
+
+    # 6) m(z)
+    m_map = compute_m_Z(bn, A_name, Z_vars, L_vars, b_map, policy_fn)
+
+    # 7) χ_{π,Z}(P;G)
+    chi = compute_chi_pi_Z(PZ, m_map)
+
+    # 8) חישוב σ^2 לפי הנוסחה המפורקת
+    #    σ^2 = Σ_{a,z} w^2 varY P(A,Z) + Σ_z (m(z)-χ)^2 P(Z=z)
+
+    term1 = 0.0
+    for key, p_az in PAZ.items():
+        a_val, z_tuple = key
+        w = w_map[key]
+        varY = var_map[key]
+        term1 += (w ** 2) * varY * p_az
+
+    term2 = 0.0
+    for z_tuple, m_val in m_map.items():
+        diff = m_val - chi
+        pz = PZ[z_tuple]
+        term2 += (diff ** 2) * pz
+
+    sigma2 = term1 + term2
+    return float(max(sigma2, 0.0))  # הגנה קטנה מפני שליליות נומרית
+
+
+
+def asymptotic_variance_for_Z_old(
+    bn: BN,
     Y: str,
     A_name: str,
     Z_vars: List[str],
@@ -433,15 +510,67 @@ def asymptotic_variance_over_Z_sets(
 ) -> Dict[Tuple[str, ...], float]:
     """
     מחשבת σ^2_{π,Z}(P) עבור כמה קבוצות התאמה Z שונות.
-
-    מחזירה:
-      results[tuple(sorted(Z))] = σ^2 עבור אותה קבוצה.
     """
     results: Dict[Tuple[str, ...], float] = {}
+
+    model, infer = bn_to_pgmpy_model(bn)
+
     for Z in Z_sets:
         Z_key = tuple(sorted(Z))
         sigma2 = asymptotic_variance_for_Z(
-            bn, Y, A_name, Z, L_vars, policy_fn, value_map=value_map
+            bn=bn,
+            infer=infer,
+            Y=Y,
+            A_name=A_name,
+            Z_vars=Z,
+            L_vars=L_vars,
+            policy_fn=policy_fn,
+            value_map=value_map,
         )
         results[Z_key] = sigma2
+
     return results
+
+
+def asymptotic_variance_for_Z_auto(
+    bn: BN,
+    Y: str,
+    A_name: str,
+    Z_vars: List[str],
+    L_vars: List[str],
+    policy_fn: PolicyFn,
+    value_map: Dict[Any, float] | None = None,
+    method: str = "exact",
+    n_samples: int = 100_000,
+    seed: int | None = None,
+) -> float:
+    if method == "exact":
+        model, infer = bn_to_pgmpy_model(bn)
+        return asymptotic_variance_for_Z(
+            bn=bn,
+            infer=infer,
+            Y=Y,
+            A_name=A_name,
+            Z_vars=Z_vars,
+            L_vars=L_vars,
+            policy_fn=policy_fn,
+            value_map=value_map,
+        )
+
+    if method == "sampling":
+
+        return asymptotic_variance_for_Z_sampling(
+            bn=bn,
+            Y=Y,
+            A_name=A_name,
+            Z_vars=Z_vars,
+            L_vars=L_vars,
+            policy_fn=policy_fn,
+            value_map=value_map,
+            n_samples=n_samples,
+            seed=seed,
+        )
+
+
+
+    raise ValueError("method must be either 'exact' or 'sampling'")

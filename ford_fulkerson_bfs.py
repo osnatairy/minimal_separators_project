@@ -25,7 +25,7 @@ def visualize_glist(glist, s, t):
         for k in range(glist[node_index + 1]):
             g.add_edge(node, glist[node_index + 2 + k])
         node_index += glist[node_index + 1] * 2 + glist[node_index + glist[node_index + 1] * 2 + 2] * 2 + 3
-    visualize_g(g)
+    #visualize_g(g)
     return
 
 
@@ -379,7 +379,7 @@ if __name__ == '__main__':
         # s = 16
         # t = 17
         numiter = 1
-        visualize_g(g)
+        #visualize_g(g)
 
     for iter in range(numiter):
         if use_saved == 0:

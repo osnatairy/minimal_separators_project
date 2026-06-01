@@ -226,7 +226,7 @@ def create_moral_graph(dag):
 #Y: List of nodes in set Y
 #pick_strategy: How to choose the node from X and Y ('first', 'random', 'central')
 def connect_I_to_XY(graph, I, X, Y, pick_strategy='first'):
-
+    '''
     def pick_node(nodes):
         if pick_strategy == 'first':
             return nodes[0]
@@ -245,6 +245,12 @@ def connect_I_to_XY(graph, I, X, Y, pick_strategy='first'):
     for node in I:
         graph.add_edge(node, x_target)
         graph.add_edge(node, y_target)
+    '''
+    for i in I:
+        for x in X:
+            graph.add_edge(i, x)
+        for y in Y:
+            graph.add_edge(i, y)
 
     return graph
 
@@ -270,6 +276,33 @@ def saturate_and_remove_nodes(graph: nx.Graph, nodes_to_remove):
     This is crucial when nodes-to-remove are adjacent, because removing one
     node may create new edges that affect the saturation of the next node.
     """
+    '''
+    nodes_to_remove = [node for node in nodes_to_remove if node in graph]
+
+    # שומרים את השכנויות לפי הגרף המקורי, לפני שמוסיפים קשתות
+    original_neighbors = {
+        node: list(graph.neighbors(node))
+        for node in nodes_to_remove
+    }
+
+    edges_to_add = set()
+
+    # Saturation: לכל צומת, מחברים את כל שכניו זה לזה
+    for node, neighbors in original_neighbors.items():
+        for i in range(len(neighbors)):
+            for j in range(i + 1, len(neighbors)):
+                u, v = neighbors[i], neighbors[j]
+                if u != v:
+                    edges_to_add.add((u, v))
+
+    # מוסיפים את כל הקשתות
+    graph.add_edges_from(edges_to_add)
+
+    # מוחקים את כל הצמתים
+    graph.remove_nodes_from(nodes_to_remove)
+
+    '''
+
     for node in list(nodes_to_remove):
         if node not in graph:
             continue

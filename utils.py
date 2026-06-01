@@ -1,3 +1,4 @@
+import os
 import random
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -276,3 +277,24 @@ def get_non_minimal_separators(all_separators, minimal_separators):
     ]
 
     return non_minimal
+
+
+def choose_num_workers(num_pairs: int) -> int:
+    """
+    בוחר מספר workers לפי מספר זוגות XY.
+    המטרה: לא לפתוח יותר מדי workers על מעט עבודה.
+    """
+    cpu_cap = os.cpu_count() or 1
+
+    if num_pairs < 15:
+        wanted = 1
+    elif num_pairs < 30:
+        wanted = 2
+    elif num_pairs < 50:
+        wanted = 4
+    elif num_pairs < 80:
+        wanted = 6
+    else:
+        wanted = 8
+    print(f"CHOOSE {wanted} WORKERS")
+    return min(wanted, cpu_cap-1)

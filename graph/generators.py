@@ -151,6 +151,33 @@ def layered_dag(n: int,
         raise RuntimeError("Layered method produced a cycle — יש לבדוק לוגיקה")
     return G#, node_layer
 
+def count_roots(G):
+    roots = [node for node in G.nodes if G.in_degree(node) == 0]
+    return len(roots), roots
+def graph_depth(G):
+    longest_path = nx.dag_longest_path(G)
+    return len(longest_path)
+def degree_stats(G):
+    in_deg = [G.in_degree(n) for n in G.nodes]
+    out_deg = [G.out_degree(n) for n in G.nodes]
+    return np.mean(in_deg), np.mean(out_deg)
+def avg_distance_from_roots(G):
+    roots = [n for n in G.nodes if G.in_degree(n)==0]
+    distances = []
+    for r in roots:
+        lengths = nx.single_source_shortest_path_length(G, r)
+        distances.extend(lengths.values())
+    return sum(distances)/len(distances)
+def level_layer(G):
+    levels = {}
+    for node in nx.topological_sort(G):
+        preds = list(G.predecessors(node))
+        if not preds:
+            levels[node] = 0
+        else:
+            levels[node] = 1 + max(levels[p] for p in preds)
+    return levels
+
 
 def spanning_tree_then_orient(n: int,
                               prob_edge: float,
@@ -197,6 +224,10 @@ def spanning_tree_then_orient(n: int,
     order = nodes[:]
     rng.shuffle(order)
 
+    #print(order)
+    #print(sorted(undirected_edges)[:10])
+
+
     # אם רוצים k_roots — בוחרים k צמתים שיהיו ראשונים בסדר
     if k_roots is not None and k_roots > 0:
         if k_roots > n:
@@ -210,7 +241,7 @@ def spanning_tree_then_orient(n: int,
     G.add_nodes_from(nodes)
 
     # הכוון כל קשת לפי הסדר: ממקום נמוך למקום גבוה
-    for (u, v) in undirected_edges:
+    for (u, v) in sorted(undirected_edges):
         if index[u] < index[v]:
             G.add_edge(u, v)
         else:

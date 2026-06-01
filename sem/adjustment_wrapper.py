@@ -70,3 +70,8 @@ def run_many_xy(
 
     return pairs
 
+def all_direct_xy_pairs(G: nx.DiGraph) -> List[Tuple[str, str]]:
+    """
+    Returns all ordered pairs (X,Y) such that there is a direct edge X -> Y.
+    """
+    return list(G.edges())

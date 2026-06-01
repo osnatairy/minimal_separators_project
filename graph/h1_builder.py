@@ -6,13 +6,25 @@ from graph.causal_vertices import find_causal_vertices_sets_optimized
 from graph.transforms import create_proper_backdoor_graph, create_moral_graph, connect_I_to_XY, create_clique_on_neighbors,saturate_and_remove_nodes
 
 
-def restrict_to_ancestors_dag(G: nx.DiGraph, keep: List) -> nx.DiGraph:
-    """Keep only nodes that are ancestors of keep ∪ keep itself."""
+def restrict_to_ancestors_dag( G_original: nx.DiGraph,
+                                G_pbd: nx.DiGraph,
+                                keep: List) -> nx.DiGraph:
+    """Keep only nodes that are ancestors of keep ∪ keep itself.
+    Return G_pbd[an_G_original(keep)], including keep itself.
+    This matches the paper's definition:
+    G_pbd(X,Y)[an_G(I ∪ X ∪ Y)]
+    """
     keep_set = normalize_nodes_to_set(keep)
     nodes = set(keep_set)
     for v in keep_set:
-        nodes |= nx.ancestors(G, v)
-    return G.subgraph(nodes).copy()
+        nodes |= nx.ancestors(G_original, v)
+    return G_pbd.subgraph(nodes).copy()
+
+    #keep_set = normalize_nodes_to_set(keep)
+    #nodes = set(keep_set)
+    #for v in keep_set:
+    #    nodes |= nx.ancestors(G, v)
+    #return G.subgraph(nodes).copy()
 
 
 def forbidden_set(G: nx.DiGraph, X, Y) -> set:
@@ -53,8 +65,8 @@ def build_H1_from_DAG(G: nx.DiGraph, X, Y, R: List[str], I: List[str] = None) ->
     # 2) Ancestor restriction
     keep = set().union(Xs, Ys, Is)
     if keep:
-        G_restricted = restrict_to_ancestors_dag(G_pbd, list(keep))
-    else:
+        G_restricted = restrict_to_ancestors_dag(G, G_pbd, list(keep))
+    else: #not supposed to happen...
         G_restricted = G_pbd
 
     # 3) Moralize
@@ -66,12 +78,11 @@ def build_H1_from_DAG(G: nx.DiGraph, X, Y, R: List[str], I: List[str] = None) ->
 
     # 5) Saturate+remove forbidden and unobserved
     forb = forbidden_set(G, Xs, Ys)           # compute forb on the original DAG (safer)
-    unobserved = set(H.nodes()) - set(R)
+    unobserved = set(G.nodes()) - set(R)
 
     to_remove = (forb | unobserved) & set(H.nodes())
     if to_remove:
         saturate_and_remove_nodes(H, list(to_remove))
         #create_clique_on_neighbors(H, to_remove)   # saturation
         #H.remove_nodes_from(to_remove)
-
     return H

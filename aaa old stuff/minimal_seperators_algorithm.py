@@ -123,7 +123,7 @@ def start_algorithm(g: nx.Graph):
                     g.graph['st'] = st
                 # visualize
                 if visualize:
-                    visualize_g(g)
+                    #visualize_g(g)
                     print(f"Seperating s = {g.graph['st'][0]} from t = {g.graph['st'][1]}")
                 # use the algorithm to enumerate separators
 

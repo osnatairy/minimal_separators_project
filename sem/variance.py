@@ -1,10 +1,18 @@
+import os
+from concurrent.futures import ProcessPoolExecutor
+from typing import Iterable
 
 import numpy as np
 from typing import Any, List, Dict, Tuple, Optional
 
 from sem.linear_sem import sem_to_B_Omega, covariance_from_B_Omega
 
-
+# Globals used by worker processes
+_WORKER_SIGMA = None
+_WORKER_VAR_NAMES = None
+_WORKER_X = None
+_WORKER_Y = None
+_WORKER_RIDGE = None
 
 # ---------- helpers: indexing + conditional variance ----------
 
@@ -169,6 +177,37 @@ def example_compute_avar(sem, X: str, Y: str, Z: List[str], ridge: float = 1e-10
     return aVar
 
 
+def compute_avar_many_Z(
+    sem,
+    X: str,
+    Y: str,
+    Z_sets,
+    ridge: float = 1e-10,
+):
+    """
+    Computes aVar for many adjustment sets Z, while computing Sigma only once.
+    Returns:
+        dict where key is tuple(sorted(Z)) and value is aVar
+    """
+    var_names, Sigma = sigma_from_sem(sem)
+    results = {}
+
+    for Z in Z_sets:
+        if len(Z) >= 1:
+            Z_list = list(Z)
+            Z_key = tuple(sorted(Z_list))
+            aVar = avar_henckel_single_xy(
+                Sigma=Sigma,
+                X=X,
+                Y=Y,
+                Z=Z_list,
+                var_names=var_names,
+                ridge=ridge,
+            )
+            results[Z_key] = aVar
+
+    return results
+
 
 from typing import List, Dict, Tuple
 from sem import variance as vcalc  # זה variance.py שלך
@@ -289,3 +328,104 @@ def compare_separators_stability(sem, Z_in, Z_out, warn_threshold=1e8):
     }
 
     return comparison
+
+
+
+def _init_worker(Sigma, var_names, X, Y, ridge):
+    """
+    Initialize per-process global variables once.
+    """
+    global _WORKER_SIGMA, _WORKER_VAR_NAMES, _WORKER_X, _WORKER_Y, _WORKER_RIDGE
+    _WORKER_SIGMA = Sigma
+    _WORKER_VAR_NAMES = var_names
+    _WORKER_X = X
+    _WORKER_Y = Y
+    _WORKER_RIDGE = ridge
+
+
+def _compute_one_z(Z):
+    """
+    Compute aVar for one adjustment set Z.
+    Returns (Z_key, aVar), or None if Z is empty.
+    """
+    if len(Z) < 1:
+        return None
+
+    Z_list = list(Z)
+    Z_key = tuple(sorted(Z_list))
+
+    aVar = avar_henckel_single_xy(
+        Sigma=_WORKER_SIGMA,
+        X=_WORKER_X,
+        Y=_WORKER_Y,
+        Z=Z_list,
+        var_names=_WORKER_VAR_NAMES,
+        ridge=_WORKER_RIDGE,
+    )
+
+    return Z_key, aVar
+
+
+def recommended_num_workers(reserve_cpus: int = 1) -> int:
+    """
+    Return a sensible number of worker processes.
+    By default, leave one CPU free for the system.
+    """
+    cpu_count = os.cpu_count() or 1
+    return max(1, cpu_count - reserve_cpus)
+
+
+def compute_avar_many_Z_parallel(
+    sem,
+    X: str,
+    Y: str,
+    Z_sets: Iterable,
+    ridge: float = 1e-10,
+    max_workers: int | None = None,
+    chunksize: int = 10,
+):
+    """
+    Compute aVar for many adjustment sets Z in parallel.
+
+    Parameters
+    ----------
+    sem : your SEM object
+    X, Y : str
+        Treatment and outcome variable names.
+    Z_sets : iterable
+        Collection of adjustment sets.
+    ridge : float
+        Numerical stabilization parameter.
+    max_workers : int | None
+        Number of worker processes. If None, choose automatically.
+    chunksize : int
+        How many Z's to send together to each worker at a time.
+
+    Returns
+    -------
+    dict
+        Maps tuple(sorted(Z)) -> aVar
+    """
+    # Step 1: compute Sigma only once
+    var_names, Sigma = sigma_from_sem(sem)
+
+    # Step 2: choose number of worker processes
+    if max_workers is None:
+        max_workers = recommended_num_workers()
+
+    results = {}
+
+    # Step 3: create the process pool
+    with ProcessPoolExecutor(
+        max_workers=max_workers,
+        initializer=_init_worker,
+        initargs=(Sigma, var_names, X, Y, ridge),
+    ) as executor:
+
+        # Step 4: distribute all Z's across workers
+        for item in executor.map(_compute_one_z, Z_sets, chunksize=chunksize):
+            if item is not None:
+                Z_key, aVar = item
+                results[Z_key] = aVar
+
+    return results

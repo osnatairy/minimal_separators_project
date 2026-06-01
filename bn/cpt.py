@@ -103,11 +103,13 @@ def generate_bn_binary_logistic(
 
     # 1) בונים BN עם אותם צמתים וקשתות
     bn = BN()
-    for node in G.nodes():
+    #for node in G.nodes():
+    for node in sorted(G.nodes(), key=str):
         # domain קבוע
         bn.add_var(node, [0, 1])
 
-    for u, v in G.edges():
+    #for u, v in G.edges():
+    for u, v in sorted(G.edges(), key=lambda e: (str(e[0]), str(e[1]))):
         bn.add_edge(u, v)
 
     # 2) סדר טופולוגי דטרמיניסטי (לקסיקוגרפי לפי שם)
@@ -115,7 +117,7 @@ def generate_bn_binary_logistic(
 
     # 3) עבור כל צומת, יוצרים CPT לוגיסטי דטרמיניסטי
     for node in topo_order:
-        parents = sorted(list(G.predecessors(node)))  # סדר הורים קבוע
+        parents = sorted(G.predecessors(node), key=str)  # סדר הורים קבוע
         bn.set_parent_order(node, parents)
 
         # פרמטרים לוגיסטיים מה-RNG הלוקאלי

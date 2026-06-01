@@ -7,6 +7,7 @@ from typing import Dict, Tuple, List
 from graph.generators import spanning_tree_then_orient, generate_random_dag, layered_dag
 
 
+
 # -----------------------------
 # 1) מודל נתונים: גרף + פרמטרים ליניאריים
 # -----------------------------
@@ -18,9 +19,10 @@ class LinearSEM:
       X_v = sum_{u in Pa(v)} beta[u->v] * X_u + eps_v
       eps_v ~ N(0, sigma2[v]) בלתי תלוי בין צמתים
     """
-    G: nx.DiGraph
+    g: nx.DiGraph
     beta: Dict[str, float]      # מפתח: "u->v"
     sigma2: Dict[str, float]    # מפתח: node
+    name = "sem"
 
 
 # -----------------------------
@@ -28,7 +30,7 @@ class LinearSEM:
 # -----------------------------
 
 def sample_linear_parameters(
-    G: nx.DiGraph,
+    g: nx.DiGraph,
     beta_scale: float = 1.0,
     sigma2_low: float = 0.2,
     sigma2_high: float = 1.0,
@@ -45,18 +47,18 @@ def sample_linear_parameters(
     rng = np.random.default_rng(seed)
 
     beta: Dict[str, float] = {}
-    for u, v in sorted(G.edges(), key=lambda e: (str(e[0]), str(e[1]))):
+    for u, v in sorted(g.edges(), key=lambda e: (str(e[0]), str(e[1]))):
         beta[f"{u}->{v}"] = float(rng.normal(loc=0.0, scale=beta_scale))
 
     sigma2: Dict[str, float] = {}
-    for v in sorted(G.nodes(), key=str):
+    for v in sorted(g.nodes(), key=str):
         sigma2[v] = float(rng.uniform(low=sigma2_low, high=sigma2_high))
 
     return beta, sigma2
 
 
 def sample_linear_parameters_stabilized(
-        G: nx.DiGraph,
+        g: nx.DiGraph,
         beta_scale: float = 0.5,  # מומלץ להוריד ל-0.5
         sigma2_low: float = 0.2,
         sigma2_high: float = 1.0,
@@ -71,7 +73,7 @@ def sample_linear_parameters_stabilized(
     node_variances: Dict[str, float] = {}
 
     # מעבר לפי סדר טופולוגי מבטיח שאנחנו מטפלים בהורים לפני הילדים
-    topo_order = list(nx.topological_sort(G))
+    topo_order = list(nx.topological_sort(g))
 
     for v in topo_order:
         # 1. דגימת שונות עצמית (Noise)
@@ -79,7 +81,7 @@ def sample_linear_parameters_stabilized(
         sigma2[v] = s2
 
         # 2. חישוב השונות שמגיעה מההורים
-        parents = list(G.predecessors(v))
+        parents = list(g.predecessors(v))
         if not parents:
             # צומת שורש - השונות שלו היא רק הרעש העצמי
             node_variances[v] = s2
@@ -140,8 +142,8 @@ def save_sem_to_json(sem: LinearSEM, path: str) -> None:
       nodes, edges, beta, sigma2
     """
     payload = {
-        "nodes": list(sem.G.nodes()),
-        "edges": [[u, v] for (u, v) in sem.G.edges()],
+        "nodes": list(sem.g.nodes()),
+        "edges": [[u, v] for (u, v) in sem.g.edges()],
         "beta": sem.beta,
         "sigma2": sem.sigma2,
     }
@@ -157,11 +159,11 @@ def load_sem_from_json(path: str) -> LinearSEM:
     with open(path, "r", encoding="utf-8") as f:
         d = json.load(f)
 
-    G = nx.DiGraph()
-    G.add_nodes_from(d["nodes"])
-    G.add_edges_from([tuple(e) for e in d["edges"]])
+    g = nx.DiGraph()
+    g.add_nodes_from(d["nodes"])
+    g.add_edges_from([tuple(e) for e in d["edges"]])
 
-    return LinearSEM(G=G, beta=d["beta"], sigma2=d["sigma2"])
+    return LinearSEM(g=g, beta=d["beta"], sigma2=d["sigma2"])
 
 
 # -----------------------------
@@ -177,12 +179,12 @@ def sem_to_B_Omega(sem: LinearSEM) -> Tuple[List[str], np.ndarray, np.ndarray]:
 
     שימי לב: זה שימושי אם תרצי אחרי זה לחשב קו-וריאנס Sigma או שונויות.
     """
-    nodes = list(sem.G.nodes())
+    nodes = list(sem.g.nodes())
     idx = {n: i for i, n in enumerate(nodes)}
     p = len(nodes)
 
     B = np.zeros((p, p), dtype=float)
-    for u, v in sem.G.edges():
+    for u, v in sem.g.edges():
         key = f"{u}->{v}"
         B[idx[v], idx[u]] = float(sem.beta[key])
 
@@ -225,7 +227,7 @@ def make_linear_sem(
 
     G1 = layered_dag(n=n, prob_edge=edge_prob, seed=seed_graph)
 
-    G = spanning_tree_then_orient(n=n,
+    g = spanning_tree_then_orient(n=n,
                     prob_edge=edge_prob,
                     k_roots=k_roots,
                     node_prefix=node_prefix,
@@ -240,7 +242,7 @@ def make_linear_sem(
     # )
 
     beta, sigma2 = sample_linear_parameters_stabilized(
-        G=G,
+        g=g,
         beta_scale=beta_scale,
         sigma2_low=sigma2_low,
         sigma2_high=sigma2_high,
@@ -249,7 +251,7 @@ def make_linear_sem(
     )
 
 
-    return LinearSEM(G=G, beta=beta, sigma2=sigma2)
+    return LinearSEM(g=g, beta=beta, sigma2=sigma2)
 
 
 def remove_edge_from_sem(sem: LinearSEM, u: str, v: str, strict: bool = True) -> None:
@@ -262,8 +264,8 @@ def remove_edge_from_sem(sem: LinearSEM, u: str, v: str, strict: bool = True) ->
     key = f"{u}->{v}"
 
     # 1) להסיר מהגרף
-    if sem.G.has_edge(u, v):
-        sem.G.remove_edge(u, v)
+    if sem.g.has_edge(u, v):
+        sem.g.remove_edge(u, v)
     else:
         if strict:
             raise KeyError(f"Edge {u}->{v} not found in sem.G")

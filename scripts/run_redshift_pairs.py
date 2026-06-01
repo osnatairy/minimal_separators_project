@@ -48,6 +48,11 @@ if __name__ == '__main__':
     for s_t in s_t_list:
         X = s_t[0]
         Y = s_t[1]
+        print("======================================================")
+        print(X,Y)
+
+
+
         s = name_to_id_G[X]
         t = name_to_id_G[Y]
         # Example usage:
@@ -72,16 +77,19 @@ if __name__ == '__main__':
         #     H, x, y = singleton_reduction(H1, X, Y)
 
         Z_sets = find_seperators(H, x, y, which="SmallMinimalSeps")
-
+        for Z in Z_sets:
+            for z in Z:
+                print(id_to_name_G[z])
+            print("---")
         #results[s_t] = Z_unique
 
         forward, reverse = cy_components_for_sets(H, Y[0], Z_sets)
         #print(forward, reverse)
         # get Hass graph for the Z - the adjustment sets
         res = hasse_from_cy_results(forward, reverse)
-        #print("***************************************")
-        #print(res)
-        #print("***************************************")
+        print("***************************************")
+        print(res)
+        print("***************************************")
 
         if len(res['hasse_edges']) >0:
             print(s_t)

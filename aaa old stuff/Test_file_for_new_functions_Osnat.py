@@ -12,7 +12,7 @@ def test_causal_vertices():
     G1.add_edges_from([(1, 2), (2, 3), (3, 4), (4, 5)])
     [s, t] = [1, 5]
     G1.graph['st'] = (s, t)
-    utils.visualize_g(G1)
+    #utils.visualize_g(G1)
     print("גרף:", list(G1.edges()))
     print("קודקודים סיבתיים בין 1 ל-5:", pp.find_causal_vertices_sets_optimized(G1, 1, 5))
     print("תוצאה צפויה: {2, 3, 4}")
@@ -26,7 +26,7 @@ def test_causal_vertices():
     G2.add_edges_from([('A', 'B'), ('A', 'C'), ('B', 'D'), ('C', 'E'), ('D', 'F'), ('E', 'F')])
     [s, t] = ['A', 'F']
     G2.graph['st'] = (s, t)
-    utils.visualize_g(G2)
+    #utils.visualize_g(G2)
     print("גרף:", list(G2.edges()))
     print("קודקודים סיבתיים בין A ל-F:", pp.find_causal_vertices_sets_optimized(G2, 'A', 'F'))
     print("תוצאה צפויה: שני המסלולים עוברים דרך B,D או C,E")
@@ -43,7 +43,7 @@ def test_causal_vertices():
     G3.add_edges_from([(1, 2), (2, 3), (3, 4), (4, 5), (2, 6), (6, 7), (3, 7), (7, 8), (7, 9)])
     [s, t] = [1, 5]
     G3.graph['st'] = (s, t)
-    utils.visualize_g(G3)
+    #utils.visualize_g(G3)
     print("גרף:", list(G3.edges()))
     print("קודקודים סיבתיים בין 1 ל-5:", pp.find_causal_vertices_sets_optimized(G3, 1, 5))
     print("קודקודים סיבתיים בין 1 ל-8:", pp.find_causal_vertices_sets_optimized(G3, 1, 8))
@@ -56,7 +56,7 @@ def test_causal_vertices():
     G4.add_edges_from([(1, 2), (3, 4)])  # שני רכיבים נפרדים
     [s, t] = [1, 4]
     G4.graph['st'] = (s, t)
-    utils.visualize_g(G4)
+    #utils.visualize_g(G4)
     print("גרף:", list(G4.edges()))
     print("קודקודים סיבתיים בין 1 ל-4:", pp.find_causal_vertices_sets_optimized(G4, 1, 4))
     print("תוצאה צפויה: set() (קבוצה ריקה)")
@@ -68,7 +68,7 @@ def test_causal_vertices():
     G5.add_edges_from([(1, 2)])
     [s, t] = [1, 2]
     G5.graph['st'] = (s, t)
-    utils.visualize_g(G5)
+    #utils.visualize_g(G5)
     print("גרף:", list(G5.edges()))
     print("קודקודים סיבתיים בין 1 ל-2:", pp.find_causal_vertices_sets_optimized(G5, 1, 2))
     print("תוצאה צפויה: set() (אין קודקודים באמצע)")
@@ -83,7 +83,7 @@ def test_causal_vertices():
     G6.add_edges_from([('X', 'A'), ('A', 'Y'), ('X', 'B'), ('B', 'C'), ('C', 'Y'), ('X', 'D'), ('D', 'Y')])
     [s, t] = ['X', 'Y']
     G6.graph['st'] = (s, t)
-    utils.visualize_g(G6)
+    #utils.visualize_g(G6)
     print("גרף:", list(G6.edges()))
     print("קודקודים סיבתיים בין X ל-Y:", pp.find_causal_vertices_sets_optimized(G6, 'X', 'Y'))
     print("תוצאה צפויה: רק הקודקודים שנמצאים על כל המסלולים")
@@ -398,10 +398,10 @@ def run_visual_test():
         ('W', 'Q')
     ])
     dag.graph['st'] = ('X', 'W')
-    utils.visualize_g(dag)
+    #utils.visualize_g(dag)
     moral = pp.create_moral_graph(dag)
     moral.graph['st'] = ('X', 'W')
-    utils.visualize_g(moral)
+    #utils.visualize_g(moral)
 
     print(f"Original DAG nodes: {list(dag.nodes)}")
     print(f"Original DAG edges: {list(dag.edges)}")

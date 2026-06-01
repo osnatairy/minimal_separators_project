@@ -10,6 +10,7 @@ class BN:
         self.domains = {}         # var -> [values]
         self.cpts = {}            # var -> { parent_tuple -> { value: prob } }
         self.parent_order = {}    # var -> [parents in order]
+        self.name = "bn"
 
     def add_var(self, name, domain):
         """Add a variable node and its finite domain."""
@@ -181,7 +182,7 @@ class BN:
         bn_new.set_cpt(target_node, {(): delta_row}, strict=False)
 
         # 5) בדיקת DAG
-        if not nx.is_directed_acyclic_graph(bn_new.g):
+        if not nx.is_directed_acyclic_graph(bn_new.G):
             raise RuntimeError("Resulting bn is not a DAG (unexpected).")
 
         return bn_new
@@ -211,11 +212,11 @@ class BN:
         target_bn = self if inplace else deepcopy(self)
 
         # ודאו שאין הורים (לא חובה מתמטית לקבוע דלתא, אבל כך עקבי עם do)
-        if list(target_bn.g.predecessors(target_node)):
+        if list(target_bn.G.predecessors(target_node)):
             # לא חובה לשבור כאן, אבל זה סימן שה-do לא הוכן
             # אפשר להסיר אוטומטית:
-            for u in list(target_bn.g.predecessors(target_node)):
-                target_bn.g.remove_edge(u, target_node)
+            for u in list(target_bn.G.predecessors(target_node)):
+                target_bn.G.remove_edge(u, target_node)
             target_bn.set_parent_order(target_node, [])
 
         delta_row = {val: (1.0 if val == value else 0.0) for val in vals}
@@ -371,6 +372,32 @@ class BN:
         return res[1].get(key, 0.0)
 
 
+    def sample(self, n_samples: int, seed: int | None = None):
+        import random
+        import pandas as pd
+        import networkx as nx
+
+        rng = random.Random(seed)
+        topo_order = list(nx.topological_sort(self.g))
+        rows = []
+
+        for _ in range(n_samples):
+            assignment = {}
+
+            for var in topo_order:
+                pkey = self._parent_tuple(var, assignment)
+                row = self.cpts[var][pkey]
+
+                values = list(row.keys())
+                probs = list(row.values())
+
+                assignment[var] = rng.choices(values, weights=probs, k=1)[0]
+
+            rows.append(assignment)
+
+        return pd.DataFrame(rows)
+
+
 @dataclass(frozen=True)
 class Factor:
     vars: Tuple[str, ...]                 # סדר משתנים בפקטור
@@ -484,7 +511,7 @@ bn.set_cpt("Y", {(0,0): {0:0.9, 1:0.1},
                  (1,0): {0:0.4, 1:0.6},
                  (1,1): {0:0.1, 1:0.9}})
 
-assert nx.is_directed_acyclic_graph(bn.g)
+assert nx.is_directed_acyclic_graph(bn.G)
 
 # Check a couple of probabilities
 print("P(Z=1) =", bn.marginal_prob({"Z":1}))
